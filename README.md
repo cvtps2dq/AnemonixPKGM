@@ -69,10 +69,10 @@ anemo sync
 anemo search "python.*"
 
 # Build a package from local source
-anemonix build ./nginx.apkg
+anemo build ./nginx.apkg
 
 # Check installed packages for integrity
-anemonix audit
+anemo audit
 
 ```
 
