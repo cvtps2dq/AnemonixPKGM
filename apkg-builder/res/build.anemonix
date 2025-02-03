@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Load Clang environment
+source /opt/anemonix/clang_env.sh
+
+build() {
+    # Auto-detect build system
+    if [[ -f "CMakeLists.txt" ]]; then
+        cmake -B build -DCMAKE_TOOLCHAIN_FILE=/opt/anemonix/clang-toolchain.cmake
+        cmake --build build --parallel $(nproc)
+    elif [[ -f "configure" ]]; then
+        ./configure --prefix=/usr
+        make -j$(nproc)
+    else
+        echo "Unknown build system!"
+        exit 1
+    fi
+}
+
+package() {
+    DESTDIR="${ANEMONIX_PKGDIR}" make install
+}
+
+build && package
