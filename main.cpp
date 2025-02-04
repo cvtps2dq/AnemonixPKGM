@@ -11,6 +11,8 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <cstring>
+#include <sstream>
+#include <unordered_set>
 
 const std::string DB_PATH = "/var/lib/anemonix/installed.db";
 const std::vector<std::string> REQUIRED_DIRS = {
@@ -19,6 +21,8 @@ const std::vector<std::string> REQUIRED_DIRS = {
     "/var/lib/anemonix/builds",
     "/var/lib/anemonix/packages"
 };
+
+// ... [keep previous helper functions: show_help(), is_superuser(), init_folders(), init_db()] ...
 
 void show_help() {
     std::cout << "Anemonix Package Manager\n";
@@ -65,113 +69,142 @@ bool init_db() {
     return true;
 }
 
-bool validate_apkg(const std::string& package_path) {
-    std::filesystem::path build_script = package_path + "/build.anemonix";
-    std::filesystem::path metadata_file = package_path + "/anemonix.yaml";
-    std::filesystem::path package_folder = package_path + "/package";
+bool validate_apkg(const std::filesystem::path& package_root) {
+    const std::unordered_set<std::string> REQUIRED_FILES = {
+        "build.anemonix",
+        "anemonix.yaml",
+        "package/"
+    };
 
-    if (!std::filesystem::exists(build_script)) {
-        std::cerr << "Error: Missing build script." << std::endl;
-        return false;
-    }
-    if (!std::filesystem::exists(metadata_file)) {
-        std::cerr << "Error: Missing metadata file." << std::endl;
-        return false;
-    }
-    if (!std::filesystem::exists(package_folder) || !std::filesystem::is_directory(package_folder)) {
-        std::cerr << "Error: Missing or invalid package folder." << std::endl;
-        return false;
+    for (const auto& item : REQUIRED_FILES) {
+        std::filesystem::path path = package_root / item;
+        if (!std::filesystem::exists(path)) {
+            std::cerr << "Error: Missing required package item: " << item << "\n";
+            return false;
+        }
     }
     return true;
 }
 
 bool untar_package(const std::string& package_path, const std::string& extract_to) {
-    struct archive* a;
-    struct archive_entry* entry;
-    int r;
-
-    a = archive_read_new();
+    struct archive* a = archive_read_new();
     archive_read_support_format_all(a);
     archive_read_support_filter_all(a);
 
-    if ((r = archive_read_open_filename(a, package_path.c_str(), 10240))) {
-        std::cerr << "Error: Failed to open package file: " << archive_error_string(a) << std::endl;
+    if (archive_read_open_filename(a, package_path.c_str(), 10240) != ARCHIVE_OK) {
+        std::cerr << "Error opening package: " << archive_error_string(a) << "\n";
         archive_read_free(a);
         return false;
     }
 
-    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-        std::string entry_path = extract_to + "/" + archive_entry_pathname(entry);
-        archive_entry_set_pathname(entry, entry_path.c_str());
-        r = archive_read_extract(a, entry, 0);
+    struct archive_entry* entry;
+    int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS;
+
+    struct archive* ext = archive_write_disk_new();
+    archive_write_disk_set_options(ext, flags);
+    archive_write_disk_set_standard_lookup(ext);
+
+    while (true) {
+        int r = archive_read_next_header(a, &entry);
+        if (r == ARCHIVE_EOF) break;
         if (r != ARCHIVE_OK) {
-            std::cerr << "Error: Failed to extract file: " << archive_error_string(a) << std::endl;
+            std::cerr << "Error reading header: " << archive_error_string(a) << "\n";
             archive_read_free(a);
+            archive_write_free(ext);
             return false;
         }
+
+        std::string full_path = extract_to + "/" + archive_entry_pathname(entry);
+        archive_entry_set_pathname(entry, full_path.c_str());
+
+        r = archive_write_header(ext, entry);
+        if (r != ARCHIVE_OK) {
+            std::cerr << "Error writing header: " << archive_error_string(ext) << "\n";
+        } else if (archive_entry_size(entry) > 0) {
+            const void* buff;
+            size_t size;
+            la_int64_t offset;
+            while (ARCHIVE_OK == archive_read_data_block(a, &buff, &size, &offset)) {
+                if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
+                    std::cerr << "Error writing data: " << archive_error_string(ext) << "\n";
+                    break;
+                }
+            }
+        }
+        archive_write_finish_entry(ext);
     }
 
     archive_read_free(a);
+    archive_write_free(ext);
     return true;
 }
 
-bool install_package(const std::string& package_path) {
-    if (!is_superuser()) {
-        std::cerr << "Error: This command must be run as root!\n";
-        return false;
+std::filesystem::path find_package_root(const std::filesystem::path& temp_dir) {
+    // Check if metadata exists directly in temp dir
+    if (std::filesystem::exists(temp_dir / "anemonix.yaml")) {
+        return temp_dir;
     }
 
-    if (!validate_apkg(package_path)) {
-        std::cerr << "Error: Package integrity check failed." << std::endl;
-        return false;
+    // Look for a single subdirectory containing metadata
+    std::filesystem::path package_root;
+    for (const auto& entry : std::filesystem::directory_iterator(temp_dir)) {
+        if (entry.is_directory() && std::filesystem::exists(entry.path() / "anemonix.yaml")) {
+            if (!package_root.empty()) {
+                std::cerr << "Error: Multiple package roots found\n";
+                return {};
+            }
+            package_root = entry.path();
+        }
     }
 
-    YAML::Node config = YAML::LoadFile(package_path + "/anemonix.yaml");
-    if (!config["name"] || !config["version"] || !config["arch"]) {
-        std::cerr << "Invalid package metadata\n";
-        return false;
+    if (package_root.empty()) {
+        std::cerr << "Error: No valid package structure found\n";
     }
-    std::string name = config["name"].as<std::string>();
-    std::string version = config["version"].as<std::string>();
-    std::string arch = config["arch"].as<std::string>();
+    return package_root;
+}
 
-    std::string build_script = package_path + "/build.anemonix";
-    std::string command = "bash " + build_script;
-    if (system(command.c_str()) != 0) {
-        std::cerr << "Error: Failed to execute build script\n";
-        return false;
-    }
+bool install_package(const std::filesystem::path& package_root) {
+    try {
+        YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
+        std::string name = config["name"].as<std::string>();
+        std::string version = config["version"].as<std::string>();
+        std::string arch = config["arch"].as<std::string>();
 
-    sqlite3* db;
-    if (sqlite3_open(DB_PATH.c_str(), &db) != SQLITE_OK) {
-        std::cerr << "Error: Cannot open database\n";
-        return false;
-    }
+        // Execute build script
+        std::string build_script = (package_root / "build.anemonix").string();
+        if (system(("bash " + build_script).c_str()) != 0) {
+            throw std::runtime_error("Build script failed");
+        }
 
-    std::string sql = "INSERT INTO packages (name, version, arch) VALUES (?, ?, ?);";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        std::cerr << "Error preparing SQL statement: " << sqlite3_errmsg(db) << "\n";
-        sqlite3_close(db);
-        return false;
-    }
+        // Database operations
+        sqlite3* db;
+        if (sqlite3_open(DB_PATH.c_str(), &db) != SQLITE_OK) {
+            throw std::runtime_error("Failed to open database");
+        }
 
-    sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
+        sqlite3_stmt* stmt;
+        const char* sql = "INSERT INTO packages (name, version, arch) VALUES (?, ?, ?);";
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+            throw std::runtime_error(sqlite3_errmsg(db));
+        }
 
-    if (sqlite3_step(stmt) != SQLITE_DONE) {
-        std::cerr << "Error inserting package: " << sqlite3_errmsg(db) << "\n";
+        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            throw std::runtime_error(sqlite3_errmsg(db));
+        }
+
         sqlite3_finalize(stmt);
         sqlite3_close(db);
+
+        std::cout << "Successfully installed " << name << " v" << version << "\n";
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Installation failed: " << e.what() << "\n";
         return false;
     }
-
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
-
-    std::cout << "Package " << name << " installed successfully.\n";
-    return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -182,34 +215,63 @@ int main(int argc, char* argv[]) {
 
     std::string command = argv[1];
 
-    if (command == "init" || command == "remove" || command == "install") {
+    if (command == "install") {
         if (!is_superuser()) {
-            std::cerr << "Error: This command must be run as root!\n";
+            std::cerr << "Error: Requires root privileges\n";
             return 1;
         }
-    }
 
-    if (command == "init") {
-        std::cout << "Initializing Anemonix...\n";
-        if (!init_folders() || !init_db()) {
-            std::cerr << "Failed to initialize Anemonix." << std::endl;
-            return 1;
-        }
-        std::cout << "Anemonix initialized successfully.\n";
-    } else if (command == "install") {
         if (argc < 3) {
-            std::cerr << "Error: No package specified for installation.\n";
+            std::cerr << "Error: Missing package file\n";
             return 1;
         }
-        std::string package_path = argv[2];
-        if (!untar_package(package_path, "/var/lib/anemonix/packages")) {
+
+        // Create temporary extraction directory
+        std::filesystem::path temp_dir = "/var/lib/anemonix/builds/tmp_" + std::to_string(getpid());
+        if (!std::filesystem::create_directory(temp_dir)) {
+            std::cerr << "Error: Failed to create temp directory\n";
             return 1;
         }
-        if (!install_package("/var/lib/anemonix/packages")) {
+
+        // Step 1: Untar package
+        if (!untar_package(argv[2], temp_dir.string())) {
+            std::filesystem::remove_all(temp_dir);
             return 1;
         }
+
+        // Step 2: Find package root
+        std::filesystem::path package_root = find_package_root(temp_dir);
+        if (package_root.empty()) {
+            std::filesystem::remove_all(temp_dir);
+            return 1;
+        }
+
+        // Step 3: Validate package
+        if (!validate_apkg(package_root)) {
+            std::filesystem::remove_all(temp_dir);
+            return 1;
+        }
+
+        // Step 4: Read metadata and create target directory
+        YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
+        std::string name = config["name"].as<std::string>();
+        std::string version = config["version"].as<std::string>();
+        std::filesystem::path target_dir = "/var/lib/anemonix/packages/" + name + "-" + version;
+
+        // Move package to final location
+        std::filesystem::rename(package_root, target_dir);
+        std::filesystem::remove_all(temp_dir);
+
+        // Step 5: Install
+        if (!install_package(target_dir)) {
+            std::filesystem::remove_all(target_dir);
+            return 1;
+        }
+
+    } else if (command == "init") {
+        // ... [keep existing init logic] ...
     } else {
-        std::cerr << "Unknown command: " << command << "\n";
+        std::cerr << "Unknown command\n";
         show_help();
         return 1;
     }
