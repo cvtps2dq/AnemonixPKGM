@@ -172,7 +172,7 @@ bool install_package(const std::filesystem::path& package_root) {
 
         // Execute build script
         std::string build_script = (package_root / "build.anemonix").string();
-        if (system(("bash " + build_script).c_str()) != 0) {
+        if (system(("bash cd " + (package_root/ ".").string()).c_str()) && system(("bash " + build_script).c_str()) != 0) {
             throw std::runtime_error("Build script failed");
         }
 
