@@ -1,0 +1,9 @@
+#!/bin/bash
+# This script installs the package contents to the system.
+
+echo "Installing test-package..."
+
+# Copy files to their destination
+cp -r package/* /
+
+echo "Installation complete!"
