@@ -171,6 +171,7 @@ bool install_package(const std::filesystem::path& package_root) {
         std::string version = config["version"].as<std::string>();
         std::string arch = config["arch"].as<std::string>();
 
+        std::cout << "yaml path: " << package_root / "anemonix.yaml\n";
         std::cout <<"Package " << name << " " << version << " " << arch << "\n";
         std::cout << "Install? y/n" << std::endl;
         char choice;
