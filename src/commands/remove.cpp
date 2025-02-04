@@ -2,6 +2,7 @@
 // Created by cv2 on 04.02.2025.
 //
 
+#include <colors.h>
 #include <iostream>
 #include <sqlite3.h>
 #include <__filesystem/operations.h>
@@ -9,15 +10,48 @@
 #include "Anemo.h"
 #include "config.h"
 
-bool Anemo::remove(const std::string &name) {
+bool Anemo::remove(const std::string &name, bool force, bool update) {
     try {
         sqlite3* db;
         if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
             throw std::runtime_error("Failed to open database");
         }
 
-        // Fetch package metadata
+        // Check if this package is a dependency of another installed package
         sqlite3_stmt* stmt;
+        const char* check_sql = "SELECT name FROM packages WHERE deps LIKE ?;";
+        if (sqlite3_prepare_v2(db, check_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+            std::cerr << "Error: " << sqlite3_errmsg(db) << "\n";
+            sqlite3_close(db);
+            return false;
+        }
+
+        std::string dep_pattern = "%"+name+"%";
+        sqlite3_bind_text(stmt, 1, dep_pattern.c_str(), -1, SQLITE_STATIC);
+
+        std::vector<std::string> dependent_packages;
+        dependent_packages.reserve(1);
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            dependent_packages.resize(dependent_packages.size() + 1);
+            dependent_packages.emplace_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+        }
+
+        if (!dependent_packages.empty() && !force && !update) {
+            std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
+            std::cout << "----------------------------------------\n";
+            std::cout << "🔗 It is required by: " << YELLOW << "\n";
+            for (const auto& dep : dependent_packages) {
+                std::cout << dep << std::endl;
+            }
+            std::cout << "! Aborting removal.\n";
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return false;
+        }
+
+        sqlite3_finalize(stmt);
+
+        // Fetch package metadata
         std::string version, arch;
 
         if (const auto select_metadata_sql = "SELECT version, arch FROM packages WHERE name = ?;"; sqlite3_prepare_v2(db, select_metadata_sql, -1, &stmt, nullptr) != SQLITE_OK) {
@@ -85,6 +119,21 @@ bool Anemo::remove(const std::string &name) {
         // Remove files
         for (const auto& file : files) {
             std::filesystem::remove(file);
+        }
+
+        // If force flag is used, move affected packages to broken_packages table
+        if (force && !dependent_packages.empty() && !update) {
+            const char* create_broken_table_sql = "CREATE TABLE IF NOT EXISTS broken_packages (name TEXT PRIMARY KEY);";
+            sqlite3_exec(db, create_broken_table_sql, nullptr, nullptr, nullptr);
+
+            const char* insert_broken_sql = "INSERT INTO broken_packages (name) VALUES (?);";
+            for (const auto& pkg : dependent_packages) {
+                if (sqlite3_prepare_v2(db, insert_broken_sql, -1, &stmt, nullptr) == SQLITE_OK) {
+                    sqlite3_bind_text(stmt, 1, pkg.c_str(), -1, SQLITE_STATIC);
+                    sqlite3_step(stmt);
+                    sqlite3_finalize(stmt);
+                }
+            }
         }
 
         // Remove database entries

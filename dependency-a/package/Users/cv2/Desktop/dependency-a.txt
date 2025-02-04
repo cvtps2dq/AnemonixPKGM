@@ -1,0 +1,1 @@
+this is a dependency A for packages.

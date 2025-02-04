@@ -1,0 +1,7 @@
+name: test-package-with-dependency
+version: 1.0
+arch: all
+deps:
+  - dependency-a
+  - dependency-b
+description: A test package for Anemo package manager. With dependencies!

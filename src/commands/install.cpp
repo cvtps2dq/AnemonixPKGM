@@ -11,7 +11,7 @@
 #include "Anemo.h"
 #include "defines.h"
 
-bool Anemo::installCmd(int argc, char* argv[]) {
+bool Anemo::installCmd(int argc, char* argv[], bool force, bool reinstall) {
     if (!Utilities::isSu()) {
             std::cerr << RED << "err: requires root privileges :( \n" << RESET;
             return false;
@@ -77,7 +77,7 @@ bool Anemo::installCmd(int argc, char* argv[]) {
 
         // Step 5: Install
         std::cout << DSTRING << CYAN << "preparing to install package..." << std::endl << RESET;
-        if (!install(target_dir)) {
+        if (!install(target_dir, force, reinstall)) {
             std::cout << DSTRING << RED << "install failed :(" << std::endl << RESET;
             std::cout << DSTRING << RED << "removing package dir: " << target_dir << std::endl << RESET;
             remove_all(target_dir);

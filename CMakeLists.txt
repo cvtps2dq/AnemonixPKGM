@@ -14,6 +14,7 @@ file(GLOB_RECURSE COMMANDS_SOURCES src/commands/*.cpp)
 # Find required libraries
 find_package(LibArchive REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(fmt REQUIRED)
 
 # Create executable
 add_executable(Anemo main.cpp ${CORE_SOURCES} ${COMMANDS_SOURCES}
@@ -21,4 +22,4 @@ add_executable(Anemo main.cpp ${CORE_SOURCES} ${COMMANDS_SOURCES}
         src/cli/defines.h)
 
 # Link libraries
-target_link_libraries(Anemo archive sqlite3 yaml-cpp)
+target_link_libraries(Anemo archive sqlite3 yaml-cpp fmt)

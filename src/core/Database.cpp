@@ -15,17 +15,24 @@ bool Database::init() {
         return false;
     }
 
-    const auto sql = R"(
+    const char* sql = R"(
         CREATE TABLE IF NOT EXISTS packages (
             name TEXT PRIMARY KEY,
             version TEXT,
-            arch TEXT
+            arch TEXT,
+            deps TEXT DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS files (
-            package_name TEXT NOT NULL,
-            file_path TEXT NOT NULL,
-            FOREIGN KEY(package_name) REFERENCES packages(name) ON DELETE CASCADE
+            package_name TEXT,
+            file_path TEXT,
+            FOREIGN KEY (package_name) REFERENCES packages(name) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS broken_packages (
+            name TEXT PRIMARY KEY,
+            missing_deps TEXT DEFAULT '',
+            FOREIGN KEY (name) REFERENCES packages(name) ON DELETE CASCADE
         );
     )";
 

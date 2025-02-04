@@ -11,9 +11,9 @@ class Anemo {
 public:
     static void showHelp();
     static bool init();
-    static bool install(const std::filesystem::path& package_root);
-    static bool installCmd(int argc, char* argv[]);
-    static bool remove(const std::string& name);
+    static bool install(const std::filesystem::path& package_root, bool force, bool reinstall);
+    static bool installCmd(int argc, char* argv[], bool force, bool reinstall);
+    static bool remove(const std::string& name, bool force, bool update);
     static bool audit();
     static bool update();
     static bool upgrade();

@@ -9,7 +9,7 @@ INCLUDES = -I/opt/local/include -I/opt/homebrew/include -Isrc/core -Isrc/cli -Is
 LDFLAGS = -L/opt/homebrew/lib
 
 # Libraries
-LIBS = -larchive -lsqlite3 -lyaml-cpp
+LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt
 
 # Source files
 CORE_SRCS = $(wildcard src/core/*.cpp)

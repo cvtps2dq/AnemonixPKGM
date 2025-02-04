@@ -14,129 +14,171 @@
 
 #include "config.h"
 #include "defines.h"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
-bool Anemo::install(const std::filesystem::path &package_root) {
+int compareVersions(const std::string& v1, const std::string& v2) {
+    std::vector<int> nums1, nums2;
+    std::stringstream ss1(v1), ss2(v2);
+    std::string temp;
+
+    while (std::getline(ss1, temp, '.')) nums1.push_back(std::stoi(temp));
+    while (std::getline(ss2, temp, '.')) nums2.push_back(std::stoi(temp));
+
+    while (nums1.size() < nums2.size()) nums1.push_back(0);
+    while (nums2.size() < nums1.size()) nums2.push_back(0);
+
+    for (size_t i = 0; i < nums1.size(); i++) {
+        if (nums1[i] < nums2[i]) return -1;
+        if (nums1[i] > nums2[i]) return 1;
+    }
+    return 0;
+}
+
+bool Anemo::install(const std::filesystem::path &package_root, bool force, bool reinstall) {
     try {
         YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
         const auto name = config["name"].as<std::string>();
         const auto version = config["version"].as<std::string>();
         const auto arch = config["arch"].as<std::string>();
 
-        std::cout << "🚀 Installing Package: " << GREEN << name << RESET << " v" << version << " [" << arch << "]\n";
-
-        // Step 1: Check Dependencies
-        std::vector<std::string> missing_deps;
+        std::vector<std::string> dependencies;
         if (config["deps"]) {
-            sqlite3* db;
-            if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
-                throw std::runtime_error("Failed to open database");
-            }
-
             for (const auto& dep : config["deps"]) {
-                std::string dep_name = dep.as<std::string>();
-                sqlite3_stmt* stmt;
-                const char* check_sql = "SELECT name FROM packages WHERE name = ?;";
-                if (sqlite3_prepare_v2(db, check_sql, -1, &stmt, nullptr) != SQLITE_OK) {
-                    throw std::runtime_error(sqlite3_errmsg(db));
-                }
-
-                sqlite3_bind_text(stmt, 1, dep_name.c_str(), -1, SQLITE_STATIC);
-                if (sqlite3_step(stmt) != SQLITE_ROW) {
-                    missing_deps.push_back(dep_name);
-                }
-
-                sqlite3_finalize(stmt);
+                dependencies.push_back(dep.as<std::string>());
             }
-            sqlite3_close(db);
         }
+        std::string deps_str = dependencies.empty() ? "" : fmt::format("{}", fmt::join(dependencies, ","));
 
-        // If there are missing dependencies, notify the user and exit.
-        if (!missing_deps.empty()) {
-            std::cout << RED << "\n🚨 Installation Failed: Missing Dependencies 🚨\n" << RESET;
-            std::cout << "----------------------------------------\n";
-            for (const auto& dep : missing_deps) {
-                std::cout << "❌ " << YELLOW << dep << RESET << " is not installed.\n";
-            }
-            std::cout << "----------------------------------------\n";
-            std::cout << "🔗 Please install the missing dependencies and try again.\n\n";
-            return false;
-        }
-
-        std::cout << GREEN << "✅ All dependencies satisfied. Proceeding with installation.\n" << RESET;
-
-        // Step 2: Confirm Installation
-        std::cout << "Do you want to install this package? (y/n): ";
-        char choice;
-        std::cin >> choice;
-        if (choice == 'n') {
-            std::cerr << "❌ User aborted package installation\n";
-            exit(EXIT_FAILURE);
-        }
-
-        // Step 3: Run Build Script
-        const std::string command = "cd '" + package_root.string() + "' && bash build.anemonix";
-        if (system(command.c_str()) != 0) {
-            throw std::runtime_error("Build script failed");
-        }
-
-        // Step 4: Register Package in Database
         sqlite3* db;
         if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
             throw std::runtime_error("Failed to open database");
         }
 
-        sqlite3_stmt* stmt;
-        if (const auto sql = "INSERT INTO packages (name, version, arch) VALUES (?, ?, ?);";
-            sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-            throw std::runtime_error(sqlite3_errmsg(db));
+        // Check if package is already installed
+        std::string installed_version;
+        sqlite3_stmt* check_stmt;
+        const char* check_sql = "SELECT version FROM packages WHERE name = ?;";
+        if (sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_text(check_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+            if (sqlite3_step(check_stmt) == SQLITE_ROW) {
+                installed_version = reinterpret_cast<const char*>(sqlite3_column_text(check_stmt, 0));
+            }
+            sqlite3_finalize(check_stmt);
         }
 
-        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
+        // Handle version comparison if already installed
+        if (!installed_version.empty()) {
+            int cmp = compareVersions(version, installed_version); // Helper function for version comparison
+            if (cmp > 0) {
+                std::cout << YELLOW << "An update is available: " << installed_version << " -> " << version << RESET << "\n";
+                std::cout << "Do you want to update? (y/n): ";
+            } else if (cmp < 0) {
+                std::cout << RED << "Warning: You are about to downgrade from " << installed_version << " to " << version << RESET << "\n";
+                std::cout << "Do you want to proceed? (y/n): ";
+            } else if (reinstall) {
+                std::cout << YELLOW << "Reinstalling package: " << name << RESET << "\n";
+                std::cout << "Are you sure? This will erase the current installation. (y/n): ";
+            } else {
+                std::cout << GREEN << "Package " << name << " is already installed and up-to-date!\n" << RESET;
+                sqlite3_close(db);
+                remove_all(package_root);
+                return true;
+            }
 
-        if (sqlite3_step(stmt) != SQLITE_DONE) {
-            throw std::runtime_error(sqlite3_errmsg(db));
+            char choice;
+            std::cin >> choice;
+            if (choice != 'y') {
+                std::cout << "Installation aborted.\n";
+                sqlite3_close(db);
+                remove_all(package_root);
+                return false;
+            }
+
+            // Remove old package before upgrade/downgrade/reinstall
+            Anemo::remove(name, force, true);
         }
 
-        sqlite3_finalize(stmt);
-
-        // Step 5: Track Installed Files
-        std::filesystem::path package_data_root = package_root / "package";
-        if (std::filesystem::exists(package_data_root) && std::filesystem::is_directory(package_data_root)) {
-            const char* file_insert_sql = "INSERT INTO files (package_name, file_path) VALUES (?, ?);";
-            for (const auto& file : std::filesystem::recursive_directory_iterator(package_data_root)) {
-                if (file.is_regular_file()) {
-                    std::string relative_path = file.path().lexically_relative(package_data_root).string();
-                    std::string installed_path = "/" + relative_path;
-
-                    sqlite3_stmt* file_stmt;
-                    if (sqlite3_prepare_v2(db, file_insert_sql, -1, &file_stmt, nullptr) != SQLITE_OK) {
-                        throw std::runtime_error(sqlite3_errmsg(db));
-                    }
-                    sqlite3_bind_text(file_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
-                    sqlite3_bind_text(file_stmt, 2, installed_path.c_str(), -1, SQLITE_STATIC);
-                    if (sqlite3_step(file_stmt) != SQLITE_DONE) {
-                        throw std::runtime_error(sqlite3_errmsg(db));
-                    }
-                    sqlite3_finalize(file_stmt);
+        // Check for missing dependencies
+        std::vector<std::string> missing_deps;
+        for (const auto& dep : dependencies) {
+            sqlite3_stmt* dep_stmt;
+            const char* dep_check_sql = "SELECT name FROM packages WHERE name = ?;";
+            if (sqlite3_prepare_v2(db, dep_check_sql, -1, &dep_stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(dep_stmt, 1, dep.c_str(), -1, SQLITE_STATIC);
+                if (sqlite3_step(dep_stmt) != SQLITE_ROW) {
+                    missing_deps.push_back(dep);
                 }
+                sqlite3_finalize(dep_stmt);
+            }
+        }
+
+        if (!force && !missing_deps.empty()) {
+            std::cout << RED << "\n! Installation Failed: Missing Dependencies !\n" << RESET;
+            for (const auto& dep : missing_deps) {
+                std::cout << "❌ " << YELLOW << dep << RESET << " is not installed.\n";
+            }
+            std::cout << "Use --force to install anyway.\n";
+            sqlite3_close(db);
+            return false;
+        } else if (!missing_deps.empty()) {
+            std::cout << YELLOW << "Warning: Proceeding with installation despite missing dependencies.\n" << RESET;
+        }
+
+        // Confirm installation
+        std::cout << "Do you want to install this package? (y/n): ";
+        char choice;
+        std::cin >> choice;
+        if (choice == 'n') {
+            std::cerr << "User aborted package installation\n";
+            sqlite3_close(db);
+            remove_all(package_root);
+            return false;
+        }
+
+        // Run build script
+        const std::string command = "cd '" + package_root.string() + "' && bash build.anemonix";
+        if (system(command.c_str()) != 0) {
+            throw std::runtime_error("Build script failed");
+        }
+
+        // Insert package into DB
+        const char* insert_sql = "INSERT INTO packages (name, version, arch, deps) VALUES (?, ?, ?, ?);";
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(db, insert_sql, -1, &stmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 4, deps_str.c_str(), -1, SQLITE_STATIC);
+            if (sqlite3_step(stmt) != SQLITE_DONE) {
+                throw std::runtime_error(sqlite3_errmsg(db));
+            }
+            sqlite3_finalize(stmt);
+        }
+
+        // Mark package as broken if dependencies are missing
+        if (!missing_deps.empty()) {
+            const char* insert_broken_sql = "INSERT OR REPLACE INTO broken_packages (name, missing_deps) VALUES (?, ?);";
+            sqlite3_stmt* broken_stmt;
+            if (sqlite3_prepare_v2(db, insert_broken_sql, -1, &broken_stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(broken_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+                sqlite3_bind_text(broken_stmt, 2, deps_str.c_str(), -1, SQLITE_STATIC);
+                sqlite3_step(broken_stmt);
+                sqlite3_finalize(broken_stmt);
             }
         }
 
         sqlite3_close(db);
-        std::cout << DSTRING << GREEN << "✅ Successfully installed " << name << " v" << version << "!\n" << RESET;
 
-        std::cout << DSTRING << CYAN << "Removing build files...\n" << RESET;
+        std::cout << GREEN << "✅ Successfully installed " << name << " v" << version << "\n" << RESET;
         remove_all(package_root);
-        std::cout << DSTRING << GREEN << "✔️ Done.\n" << RESET;
         return true;
-
     } catch (const std::exception& e) {
-        std::cerr << RED << "❌ Installation failed: " << e.what() << " :(\n" << RESET;
+        std::cerr << "Installation failed: " << e.what() << "\n";
         return false;
     }
 }
+
 
 bool Anemo::validate(const std::filesystem::path& package_root) {
     const std::unordered_set<std::string> REQUIRED_FILES = {
