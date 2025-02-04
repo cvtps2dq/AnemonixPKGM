@@ -268,8 +268,22 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-    } else if (command == "init") {
-        // ... [keep existing init logic] ...
+    } if (command == "init") {
+        std::cout << "Initializing Anemonix...\n";
+        if (!init_folders() || !init_db()) {
+            std::cerr << "Failed to initialize Anemonix." << std::endl;
+            return 1;
+        }
+        std::cout << "Anemonix initialized successfully.\n";
+    } else if (command == "install") {
+        if (argc < 3) {
+            std::cerr << "Error: No package specified for installation.\n";
+            return 1;
+        }
+        std::string package_path = argv[2];
+        if (!install_package(package_path)) {
+            return 1;
+        }
     } else {
         std::cerr << "Unknown command\n";
         show_help();
