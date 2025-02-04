@@ -14,14 +14,29 @@ bool Database::init() {
         std::cerr << "Error: Cannot open database\n";
         return false;
     }
+
+    const auto sql = R"(
+        CREATE TABLE IF NOT EXISTS packages (
+            name TEXT PRIMARY KEY,
+            version TEXT,
+            arch TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS files (
+            package_name TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            FOREIGN KEY(package_name) REFERENCES packages(name) ON DELETE CASCADE
+        );
+    )";
+
     char* errMsg;
-    if (const auto sql = "CREATE TABLE IF NOT EXISTS packages (name TEXT PRIMARY KEY, version TEXT, arch TEXT);";
-        sqlite3_exec(db, sql, nullptr, nullptr, &errMsg) != SQLITE_OK) {
-            std::cerr << "Error creating table: " << errMsg << "\n";
-            sqlite3_free(errMsg);
-            sqlite3_close(db);
-            return false;
+    if (sqlite3_exec(db, sql, nullptr, nullptr, &errMsg) != SQLITE_OK) {
+        std::cerr << "Error creating tables: " << errMsg << "\n";
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        return false;
     }
+
     sqlite3_close(db);
     return true;
 }
