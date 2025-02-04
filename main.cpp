@@ -11,6 +11,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <cstring>
+#include <random>
 #include <sstream>
 #include <unordered_set>
 
@@ -170,37 +171,51 @@ bool install_package(const std::filesystem::path& package_root) {
         std::string version = config["version"].as<std::string>();
         std::string arch = config["arch"].as<std::string>();
 
-        // Execute build script
-        std::string build_script = (package_root / "build.anemonix").string();
-        if (system(("bash cd " + (package_root/ ".").string()).c_str()) && system(("bash " + build_script).c_str()) != 0) {
-            throw std::runtime_error("Build script failed");
+        std::cout <<"Package " << name << " " << version << " " << arch << "\n";
+        std::cout << "Install? y/n" << std::endl;
+        char choice;
+        std::cin >> choice;
+        if (choice == 'n') {
+            std::cerr << "User aborted package installation\n";
+            exit(EXIT_FAILURE);
+        } else if (choice == 'y') {
+            // Execute build script
+            std::string build_script = (package_root / "build.anemonix").string();
+            if (system(("bash cd " + (package_root/ ".").string()).c_str()) && system(("bash " + build_script).c_str()) != 0) {
+                throw std::runtime_error("Build script failed");
+            }
+
+            // Database operations
+            sqlite3* db;
+            if (sqlite3_open(DB_PATH.c_str(), &db) != SQLITE_OK) {
+                throw std::runtime_error("Failed to open database");
+            }
+
+            sqlite3_stmt* stmt;
+            const char* sql = "INSERT INTO packages (name, version, arch) VALUES (?, ?, ?);";
+            if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+                throw std::runtime_error(sqlite3_errmsg(db));
+            }
+
+            sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
+
+            if (sqlite3_step(stmt) != SQLITE_DONE) {
+                throw std::runtime_error(sqlite3_errmsg(db));
+            }
+
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+
+            std::cout << "Successfully installed " << name << " v" << version << "\n";
+            return true;
+        } else {
+            std::cerr << "Unknown choice.\n";
+            exit(EXIT_FAILURE);
         }
 
-        // Database operations
-        sqlite3* db;
-        if (sqlite3_open(DB_PATH.c_str(), &db) != SQLITE_OK) {
-            throw std::runtime_error("Failed to open database");
-        }
 
-        sqlite3_stmt* stmt;
-        const char* sql = "INSERT INTO packages (name, version, arch) VALUES (?, ?, ?);";
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-            throw std::runtime_error(sqlite3_errmsg(db));
-        }
-
-        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
-
-        if (sqlite3_step(stmt) != SQLITE_DONE) {
-            throw std::runtime_error(sqlite3_errmsg(db));
-        }
-
-        sqlite3_finalize(stmt);
-        sqlite3_close(db);
-
-        std::cout << "Successfully installed " << name << " v" << version << "\n";
-        return true;
     } catch (const std::exception& e) {
         std::cerr << "Installation failed: " << e.what() << "\n";
         return false;
