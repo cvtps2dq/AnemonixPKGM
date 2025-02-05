@@ -27,7 +27,7 @@ bool Utilities::isSu() {
 
 bool Utilities::initFolders() {
     for (const auto& dir : AConf::REQUIRED_DIRS) {
-        if (mkdir(dir.c_str(), 0755) != 0 && errno != EEXIST) {
+        if (std::filesystem::create_directories( (AConf::ANEMO_ROOT + dir).c_str()) == 0 && errno != EEXIST) {
             std::cerr << "Error: Failed to create directory " << dir << "\n";
             return false;
         }

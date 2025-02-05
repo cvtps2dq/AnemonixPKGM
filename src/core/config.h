@@ -11,14 +11,16 @@
 #endif
 
 namespace AConf {
-    const std::string DB_PATH = "/var/lib/anemonix/installed.db";
     const std::vector<std::string> REQUIRED_DIRS = {
-        "/var/lib/anemonix",
-        "/var/lib/anemonix/cache",
-        "/var/lib/anemonix/builds",
-        "/var/lib/anemonix/packages"
+        "/cache",
+        "/builds",
+        "/packages"
     };
 
-}
+    inline std::string ANEMO_ROOT = "/var/lib/anemonix/";
+    inline std::string DB_PATH =  "/var/lib/anemonix/installed.db";
+    inline std::string BSTRAP_PATH;
+
+};
 
 #endif //CONFIG_H

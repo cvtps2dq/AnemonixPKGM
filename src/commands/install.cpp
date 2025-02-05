@@ -14,6 +14,7 @@
 #endif
 #include "colors.h"
 #include "Anemo.h"
+#include "config.h"
 #include "defines.h"
 
 bool Anemo::installCmd(int argc, char* argv[], bool force, bool reinstall) {
@@ -28,16 +29,13 @@ bool Anemo::installCmd(int argc, char* argv[], bool force, bool reinstall) {
         }
 
         // Create temporary extraction directory
-        std::cout << DSTRING << CYAN << "creating temporary directory for extraction " <<
-            "/var/lib/anemonix/builds/tmp_" + std::to_string(getpid()) << "\n" << RESET;
 
-        std::filesystem::path temp_dir = "/var/lib/anemonix/builds/tmp_" + std::to_string(getpid());
+        std::filesystem::path temp_dir = AConf::ANEMO_ROOT + "/builds/tmp_" + std::to_string(getpid());
         if (!create_directory(temp_dir)) {
             std::cerr << RED << "err: failed to create temp directory :( \n" << RESET;
             return false;
         }
 
-        std::cout << DSTRING << CYAN << "unpacking package..." << std::endl << RESET;
         // Step 1: Untar package
         if (!Utilities::untarPKG(argv[2], temp_dir.string())) {
             remove_all(temp_dir);
@@ -45,43 +43,31 @@ bool Anemo::installCmd(int argc, char* argv[], bool force, bool reinstall) {
         }
 
         // Step 2: Find package root
-        std::cout << DSTRING << CYAN << "finding package root..." << std::endl << RESET;
         std::filesystem::path package_root = Utilities::findPKGRoot(temp_dir);
-        std::cout << DSTRING << GREEN << "found. " << package_root.c_str() << std::endl << RESET;
         if (package_root.empty()) {
             remove_all(temp_dir);
             return false;
         }
 
         // Step 3: Validate package
-        std::cout << DSTRING << CYAN << "validating package... " << std::endl << RESET;
         if (!validate(package_root)) {
             remove_all(temp_dir);
             return false;
         }
 
         // Step 4: Read metadata and create target directory
-        std::cout << DSTRING << CYAN << "reading package metadata... " << std::endl << RESET;
-        std::cout << DSTRING << CYAN << "yaml path: " << package_root / "anemonix.yaml" << std::endl << RESET;
 
         YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
         auto name = config["name"].as<std::string>();
         auto version = config["version"].as<std::string>();
 
-        std::cout << DSTRING << GREEN << "ok. " << "name : " << name << " version: " << version << std::endl << RESET;
-
-        std::cout << DSTRING << CYAN << "creating target dir..." << std::endl << RESET;
-        std::filesystem::path target_dir = "/var/lib/anemonix/packages/" + name + "-" + version;
-        std::cout << DSTRING << GREEN << "ok. " << "/var/lib/anemonix/packages/" + name + "-" + version << std::endl;
+        std::filesystem::path target_dir = AConf::ANEMO_ROOT + "/packages/" + name + "-" + version;
 
         // Move package to final location
-        std::cout << DSTRING << CYAN << "moving package to final dir..." << std::endl << RESET;
         std::filesystem::rename(package_root, target_dir);
         remove_all(temp_dir);
-        std::cout << DSTRING << GREEN << "ok." << std::endl << RESET;
 
         // Step 5: Install
-        std::cout << DSTRING << CYAN << "preparing to install package..." << std::endl << RESET;
         if (!install(target_dir, force, reinstall)) {
             std::cout << DSTRING << RED << "install failed :(" << std::endl << RESET;
             std::cout << DSTRING << RED << "removing package dir: " << target_dir << std::endl << RESET;

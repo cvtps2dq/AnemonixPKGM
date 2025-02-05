@@ -17,9 +17,12 @@
     #include <vector>
 #endif
 
+#include <random>
+
 #include "config.h"
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <__filesystem/recursive_directory_iterator.h>
 
 int compareVersions(const std::string& v1, const std::string& v2) {
     std::vector<int> nums1, nums2;
@@ -114,7 +117,7 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
             }
         }
 
-        if (!force && !missing_deps.empty()) {
+        if (!force && !missing_deps.empty() && AConf::BSTRAP_PATH.empty()) {
             std::cout << RED << "\n! Installation Failed: Missing Dependencies !\n" << RESET;
             for (const auto& dep : missing_deps) {
                 std::cout << "❌ " << YELLOW << dep << RESET << " is not installed.\n";
@@ -128,9 +131,14 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
         }
 
         // Confirm installation
-        std::cout << "Do you want to install this package? (y/n): ";
         char choice;
-        std::cin >> choice;
+        if (AConf::BSTRAP_PATH.empty()) {
+            std::cout << "Do you want to install this package? (y/n): ";
+            std::cin >> choice;
+        } else {
+            choice = 'y';
+        }
+
         if (choice == 'n') {
             std::cerr << "User aborted package installation\n";
             sqlite3_close(db);
@@ -139,9 +147,28 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
         }
 
         // Run build script
-        const std::string command = "cd '" + package_root.string() + "' && bash build.anemonix";
-        if (system(command.c_str()) != 0) {
-            throw std::runtime_error("Build script failed");
+        for (std::filesystem::path package_dir = package_root / "package";
+            const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+            std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
+            if (is_directory(file)) {
+                std::filesystem::create_directories( AConf::BSTRAP_PATH + target_path.c_str());
+            } else {
+                // Insert copied file path into database
+                sqlite3_stmt* file_stmt;
+                if (auto insert_file_sql = "INSERT INTO files (package_name, file_path) VALUES (?, ?);"; sqlite3_prepare_v2(db, insert_file_sql, -1, &file_stmt, nullptr) == SQLITE_OK) {
+                    sqlite3_bind_text(file_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+                    sqlite3_bind_text(file_stmt, 2, target_path.c_str(), -1, SQLITE_STATIC);
+                    sqlite3_step(file_stmt);
+                    sqlite3_finalize(file_stmt);
+                }
+                copy(file, AConf::BSTRAP_PATH + target_path.c_str(), std::filesystem::copy_options::overwrite_existing);
+            }
+        }
+
+        if (std::filesystem::path install_script = package_root / "install.anemonix"; std::filesystem::exists(install_script)) {
+            if (system(install_script.string().c_str()) != 0) {
+                throw std::runtime_error("install.anemonix script failed");
+            }
         }
 
         // Insert package into DB
