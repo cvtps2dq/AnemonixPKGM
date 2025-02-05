@@ -5,12 +5,18 @@
 #include <colors.h>
 #include <iostream>
 #include <sqlite3.h>
-#include <__filesystem/operations.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/operations.h>
+#elif defined (__linux__)
+    #include <filesystem>
+    #include <vector>
+#endif
 
 #include "Anemo.h"
 #include "config.h"
 
-bool Anemo::remove(const std::string &name, bool force, bool update) {
+bool Anemo::remove(const std::string &name, const bool force, const bool update) {
     try {
         sqlite3* db;
         if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
@@ -19,14 +25,13 @@ bool Anemo::remove(const std::string &name, bool force, bool update) {
 
         // Check if this package is a dependency of another installed package
         sqlite3_stmt* stmt;
-        const char* check_sql = "SELECT name FROM packages WHERE deps LIKE ?;";
-        if (sqlite3_prepare_v2(db, check_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        if (const auto check_sql = "SELECT name FROM packages WHERE deps LIKE ?;"; sqlite3_prepare_v2(db, check_sql, -1, &stmt, nullptr) != SQLITE_OK) {
             std::cerr << "Error: " << sqlite3_errmsg(db) << "\n";
             sqlite3_close(db);
             return false;
         }
 
-        std::string dep_pattern = "%"+name+"%";
+        const std::string dep_pattern = "%"+name+"%";
         sqlite3_bind_text(stmt, 1, dep_pattern.c_str(), -1, SQLITE_STATIC);
 
         std::vector<std::string> dependent_packages;
@@ -123,12 +128,11 @@ bool Anemo::remove(const std::string &name, bool force, bool update) {
 
         // If force flag is used, move affected packages to broken_packages table
         if (force && !dependent_packages.empty() && !update) {
-            const char* create_broken_table_sql = "CREATE TABLE IF NOT EXISTS broken_packages (name TEXT PRIMARY KEY);";
+            const auto create_broken_table_sql = "CREATE TABLE IF NOT EXISTS broken_packages (name TEXT PRIMARY KEY);";
             sqlite3_exec(db, create_broken_table_sql, nullptr, nullptr, nullptr);
 
-            const char* insert_broken_sql = "INSERT INTO broken_packages (name) VALUES (?);";
             for (const auto& pkg : dependent_packages) {
-                if (sqlite3_prepare_v2(db, insert_broken_sql, -1, &stmt, nullptr) == SQLITE_OK) {
+                if (const auto insert_broken_sql = "INSERT INTO broken_packages (name) VALUES (?);"; sqlite3_prepare_v2(db, insert_broken_sql, -1, &stmt, nullptr) == SQLITE_OK) {
                     sqlite3_bind_text(stmt, 1, pkg.c_str(), -1, SQLITE_STATIC);
                     sqlite3_step(stmt);
                     sqlite3_finalize(stmt);

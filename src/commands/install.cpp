@@ -6,7 +6,12 @@
 #include <unistd.h>
 #include <Utilities.h>
 #include <yaml-cpp/yaml.h>
-#include <__filesystem/operations.h>
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/operations.h>
+#elif defined (__linux__)
+    #include <filesystem>
+    #include <vector>
+#endif
 #include "colors.h"
 #include "Anemo.h"
 #include "defines.h"

@@ -6,6 +6,10 @@
 #define CONFIG_H
 #include <string>
 
+#if defined (__linux__)
+#include <vector>
+#endif
+
 namespace AConf {
     const std::string DB_PATH = "/var/lib/anemonix/installed.db";
     const std::vector<std::string> REQUIRED_DIRS = {

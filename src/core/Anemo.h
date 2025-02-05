@@ -4,7 +4,11 @@
 
 #ifndef ANEMO_H
 #define ANEMO_H
-#include <__filesystem/path.h>
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/operations.h>
+#elif defined (__linux__)
+    #include <filesystem>
+#endif
 
 
 class Anemo {

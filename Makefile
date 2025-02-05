@@ -2,14 +2,22 @@
 CXX = clang++
 CXXFLAGS = -std=c++23 -Wall -Wextra -g
 
-# Include directories
-INCLUDES = -I/opt/local/include -I/opt/homebrew/include -Isrc/core -Isrc/cli -Isrc/commands
+# OS-specific settings
+OS := $(shell uname)
 
-# Library directories
-LDFLAGS = -L/opt/homebrew/lib
+ifeq ($(OS), Linux)
+    # Linux-specific includes and libraries
+    INCLUDES = -I/usr/local/include -I/usr/include -Isrc/core -Isrc/cli -Isrc/commands
+    LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt -lstdc++fs
+    LDFLAGS = -L/usr/local/lib
+endif
 
-# Libraries
-LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt
+ifeq ($(OS), Darwin)
+    # macOS-specific includes and libraries
+    INCLUDES = -I/opt/local/include -I/opt/homebrew/include -Isrc/core -Isrc/cli -Isrc/commands
+    LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt
+    LDFLAGS = -L/opt/homebrew/lib
+endif
 
 # Source files
 CORE_SRCS = $(wildcard src/core/*.cpp)

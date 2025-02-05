@@ -3,7 +3,6 @@
 //
 
 #include "Database.h"
-
 #include <iostream>
 #include <sqlite3.h>
 #include "config.h"

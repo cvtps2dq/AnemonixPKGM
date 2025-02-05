@@ -6,8 +6,15 @@
 #include <iostream>
 #include <sqlite3.h>
 #include <sstream>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <fmt/format.h>
+    #include <fmt/ranges.h>
+#elif defined (__linux__)
+    #include <fmt>
+    #include <vector>
+#endif
+
 
 #include "Anemo.h"
 #include "config.h"
@@ -21,9 +28,8 @@ bool Anemo::audit() {
     std::vector<std::pair<std::string, std::vector<std::string>>> broken_packages;
 
     // Get all broken packages
-    const char* select_sql = "SELECT name, missing_deps FROM broken_packages;";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, select_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (auto select_sql = "SELECT name, missing_deps FROM broken_packages;"; sqlite3_prepare_v2(db, select_sql, -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Error retrieving broken packages\n";
         sqlite3_close(db);
         return false;
@@ -66,8 +72,7 @@ bool Anemo::audit() {
         bool all_deps_satisfied = true;
         for (const auto& dep : deps) {
             sqlite3_stmt* dep_stmt;
-            const char* check_sql = "SELECT name FROM packages WHERE name = ?;";
-            if (sqlite3_prepare_v2(db, check_sql, -1, &dep_stmt, nullptr) != SQLITE_OK) {
+            if (auto check_sql = "SELECT name FROM packages WHERE name = ?;"; sqlite3_prepare_v2(db, check_sql, -1, &dep_stmt, nullptr) != SQLITE_OK) {
                 std::cerr << "Error checking dependencies\n";
                 continue;
             }
@@ -83,8 +88,7 @@ bool Anemo::audit() {
         // If dependencies are resolved, remove from broken_packages
         if (all_deps_satisfied) {
             sqlite3_stmt* delete_stmt;
-            const char* delete_sql = "DELETE FROM broken_packages WHERE name = ?;";
-            if (sqlite3_prepare_v2(db, delete_sql, -1, &delete_stmt, nullptr) == SQLITE_OK) {
+            if (auto delete_sql = "DELETE FROM broken_packages WHERE name = ?;"; sqlite3_prepare_v2(db, delete_sql, -1, &delete_stmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_text(delete_stmt, 1, pkg.c_str(), -1, SQLITE_STATIC);
                 sqlite3_step(delete_stmt);
                 sqlite3_finalize(delete_stmt);

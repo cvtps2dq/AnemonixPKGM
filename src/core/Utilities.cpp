@@ -10,8 +10,14 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <__filesystem/directory_iterator.h>
-#include <__filesystem/operations.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/directory_iterator.h>
+    #include <__filesystem/operations.h>
+#elif defined (__linux__)
+    #include <filesystem>
+    #include <vector>
+#endif
 
 #include "config.h"
 

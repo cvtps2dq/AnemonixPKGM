@@ -9,11 +9,15 @@
 #include <sqlite3.h>
 #include <unordered_set>
 #include <yaml-cpp/yaml.h>
-#include <__filesystem/operations.h>
-#include <__filesystem/recursive_directory_iterator.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/operations.h>
+#elif defined (__linux__)
+    #include <filesystem>
+    #include <vector>
+#endif
 
 #include "config.h"
-#include "defines.h"
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -58,8 +62,7 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
         // Check if package is already installed
         std::string installed_version;
         sqlite3_stmt* check_stmt;
-        const char* check_sql = "SELECT version FROM packages WHERE name = ?;";
-        if (sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, nullptr) == SQLITE_OK) {
+        if (auto check_sql = "SELECT version FROM packages WHERE name = ?;"; sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_text(check_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
             if (sqlite3_step(check_stmt) == SQLITE_ROW) {
                 installed_version = reinterpret_cast<const char*>(sqlite3_column_text(check_stmt, 0));
@@ -69,8 +72,7 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
 
         // Handle version comparison if already installed
         if (!installed_version.empty()) {
-            int cmp = compareVersions(version, installed_version); // Helper function for version comparison
-            if (cmp > 0) {
+            if (int cmp = compareVersions(version, installed_version); cmp > 0) {
                 std::cout << YELLOW << "An update is available: " << installed_version << " -> " << version << RESET << "\n";
                 std::cout << "Do you want to update? (y/n): ";
             } else if (cmp < 0) {
@@ -96,15 +98,14 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
             }
 
             // Remove old package before upgrade/downgrade/reinstall
-            Anemo::remove(name, force, true);
+            remove(name, force, true);
         }
 
         // Check for missing dependencies
         std::vector<std::string> missing_deps;
         for (const auto& dep : dependencies) {
             sqlite3_stmt* dep_stmt;
-            const char* dep_check_sql = "SELECT name FROM packages WHERE name = ?;";
-            if (sqlite3_prepare_v2(db, dep_check_sql, -1, &dep_stmt, nullptr) == SQLITE_OK) {
+            if (auto dep_check_sql = "SELECT name FROM packages WHERE name = ?;"; sqlite3_prepare_v2(db, dep_check_sql, -1, &dep_stmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_text(dep_stmt, 1, dep.c_str(), -1, SQLITE_STATIC);
                 if (sqlite3_step(dep_stmt) != SQLITE_ROW) {
                     missing_deps.push_back(dep);
@@ -121,7 +122,8 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
             std::cout << "Use --force to install anyway.\n";
             sqlite3_close(db);
             return false;
-        } else if (!missing_deps.empty()) {
+        }
+        if (!missing_deps.empty()) {
             std::cout << YELLOW << "Warning: Proceeding with installation despite missing dependencies.\n" << RESET;
         }
 
@@ -143,9 +145,8 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
         }
 
         // Insert package into DB
-        const char* insert_sql = "INSERT INTO packages (name, version, arch, deps) VALUES (?, ?, ?, ?);";
         sqlite3_stmt* stmt;
-        if (sqlite3_prepare_v2(db, insert_sql, -1, &stmt, nullptr) == SQLITE_OK) {
+        if (auto insert_sql = "INSERT INTO packages (name, version, arch, deps) VALUES (?, ?, ?, ?);"; sqlite3_prepare_v2(db, insert_sql, -1, &stmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
             sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
             sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
@@ -158,9 +159,8 @@ bool Anemo::install(const std::filesystem::path &package_root, bool force, bool 
 
         // Mark package as broken if dependencies are missing
         if (!missing_deps.empty()) {
-            const char* insert_broken_sql = "INSERT OR REPLACE INTO broken_packages (name, missing_deps) VALUES (?, ?);";
             sqlite3_stmt* broken_stmt;
-            if (sqlite3_prepare_v2(db, insert_broken_sql, -1, &broken_stmt, nullptr) == SQLITE_OK) {
+            if (auto insert_broken_sql = "INSERT OR REPLACE INTO broken_packages (name, missing_deps) VALUES (?, ?);"; sqlite3_prepare_v2(db, insert_broken_sql, -1, &broken_stmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_text(broken_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
                 sqlite3_bind_text(broken_stmt, 2, deps_str.c_str(), -1, SQLITE_STATIC);
                 sqlite3_step(broken_stmt);

@@ -4,7 +4,11 @@
 
 #ifndef UTILITIES_H
 #define UTILITIES_H
-#include <__filesystem/path.h>
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <__filesystem/directory_iterator.h>
+#elif defined (__linux__)
+    #include <filesystem>
+#endif
 
 class Utilities {
     public:
