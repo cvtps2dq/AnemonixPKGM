@@ -21,6 +21,8 @@ public:
     static bool update();
     static bool upgrade();
     static bool validate(const std::filesystem::path& package_root);
+
+    static void list();
 };
 
 

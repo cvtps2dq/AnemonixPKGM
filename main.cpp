@@ -60,7 +60,11 @@ int main(const int argc, char* argv[]) {
         Anemo::remove(argv[2], force, false);
     } else if (command == "audit") {
         Anemo::audit();
-    }else {
+    } else if (command == "list") {
+        Anemo::list();
+    }
+
+    else {
         std::cerr << "Unknown command\n";
         Anemo::showHelp();
         return 1;
