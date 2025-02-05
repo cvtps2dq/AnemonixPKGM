@@ -1,6 +1,7 @@
 #include <Anemo.h>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "config.h"
 
 int main(const int argc, char* argv[]) {
@@ -10,65 +11,44 @@ int main(const int argc, char* argv[]) {
     }
 
     const std::string command = argv[1];
-    bool force = false;
-    bool reinstall = false;
-    bool bootstrap = false;
+    bool force = false, reinstall = false, bootstrap = false;
+    std::vector<std::string> arguments;
 
-    // Check for --force flag
+    // Parse arguments and flags
     for (int i = 2; i < argc; ++i) {
-        if (std::string(argv[i]) == "--force") {
-            force = true;
-            break;
-        }
-    }
-
-    for (int i = 2; i < argc; ++i) {
-        if (std::string(argv[i]) == "--bootstrap") {
-            bootstrap = true;
-            break;
-        }
-    }
-
-    for (int i = 2; i < argc; ++i) {
-        if (std::string(argv[i]) == "--reinstall") {
-            reinstall = true;
-            break;
-        }
+        std::string arg = argv[i];
+        if (arg == "--force") force = true;
+        else if (arg == "--reinstall") reinstall = true;
+        else if (arg == "--bootstrap") bootstrap = true;
+        else arguments.push_back(arg);
     }
 
     if (command == "init") {
-        if (bootstrap) {
-            AConf::ANEMO_ROOT = std::string(argv[3]).append(AConf::ANEMO_ROOT);
-            AConf::BSTRAP_PATH = std::string(argv[3]);
-            std::cout << argv[3] << std::endl;
+        if (bootstrap && !arguments.empty()) {
+            AConf::ANEMO_ROOT = arguments[0] + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = arguments[0];
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
-            std::cout << AConf::DB_PATH << std::endl;
         }
         Anemo::init();
     } else if (command == "help") {
         Anemo::showHelp();
-    } else if (command == "install") {
-        if (bootstrap) {
-            AConf::ANEMO_ROOT = std::string(argv[4]).append(AConf::ANEMO_ROOT);
-            AConf::BSTRAP_PATH = std::string(argv[4]);
-            std::cout << argv[4] << std::endl;
+    } else if (command == "install" && !arguments.empty()) {
+        if (bootstrap && arguments.size() > 1) {
+            AConf::ANEMO_ROOT = arguments[1] + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = arguments[1];
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
-            std::cout << AConf::DB_PATH << std::endl;
         }
-        Anemo::install(argc, argv, force, reinstall);
-    } else if (command == "remove") {
-        Anemo::remove(argv[2], force, false);
+        Anemo::install(arguments, force, reinstall);
+    } else if (command == "remove" && !arguments.empty()) {
+        Anemo::remove(arguments[0], force, false);
     } else if (command == "audit") {
         Anemo::audit();
     } else if (command == "list") {
         Anemo::list();
-    }
-
-    else {
+    } else {
         std::cerr << "Unknown command\n";
         Anemo::showHelp();
         return 1;
     }
-
     return 0;
 }
