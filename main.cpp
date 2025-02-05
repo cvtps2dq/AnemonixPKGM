@@ -37,13 +37,40 @@ int main(const int argc, char* argv[]) {
             AConf::ANEMO_ROOT = arguments[1] + AConf::ANEMO_ROOT;
             AConf::BSTRAP_PATH = arguments[1];
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
+            arguments.erase(arguments.begin()); // Remove path from package list
         }
-        Anemo::install(arguments, force, reinstall);
+        for (const auto& pkg : arguments) {
+            if (!Anemo::install({pkg}, force, reinstall)) {
+                std::cerr << "Failed to install: " << pkg << "\n";
+            }
+        }
     } else if (command == "remove" && !arguments.empty()) {
-        Anemo::remove(arguments[0], force, false);
+        std::string bootstrap_path;
+        if (bootstrap && arguments.size() > 1) {
+            bootstrap_path = arguments[0];
+            AConf::ANEMO_ROOT = bootstrap_path + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = bootstrap_path;
+            AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
+            arguments.erase(arguments.begin()); // Remove path from package list
+        }
+        for (const auto& pkg : arguments) {
+            if (!Anemo::remove(pkg, force, bootstrap)) {
+                std::cerr << "Failed to remove: " << pkg << "\n";
+            }
+        }
     } else if (command == "audit") {
+        if (bootstrap && !arguments.empty()) {
+            AConf::ANEMO_ROOT = arguments[0] + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = arguments[0];
+            AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
+        }
         Anemo::audit();
     } else if (command == "list") {
+        if (bootstrap && !arguments.empty()) {
+            AConf::ANEMO_ROOT = arguments[0] + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = arguments[0];
+            AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
+        }
         Anemo::list();
     } else {
         std::cerr << "Unknown command\n";
