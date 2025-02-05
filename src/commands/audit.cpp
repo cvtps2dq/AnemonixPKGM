@@ -7,11 +7,9 @@
 #include <sqlite3.h>
 #include <sstream>
 
-#if defined(__APPLE__) && defined(__MACH__)
-    #include <fmt/format.h>
-    #include <fmt/ranges.h>
-#elif defined (__linux__)
-    #include <fmt>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#if defined (__linux__)
     #include <vector>
 #endif
 
