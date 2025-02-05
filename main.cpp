@@ -55,7 +55,7 @@ int main(const int argc, char* argv[]) {
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
             std::cout << AConf::DB_PATH << std::endl;
         }
-        Anemo::installCmd(argc, argv, force, reinstall);
+        Anemo::install(argc, argv, force, reinstall);
     } else if (command == "remove") {
         Anemo::remove(argv[2], force, false);
     } else if (command == "audit") {
