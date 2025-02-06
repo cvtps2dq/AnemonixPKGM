@@ -462,7 +462,7 @@ std::vector<std::string> Database::fetchProvidedPackages(const std::string &name
     return provided_packages;
 }
 
-std::string fetchDescription(const std::string & name) {
+std::string Database::fetchDescription(const std::string& name) {
     sqlite3* db;
     if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
         throw std::runtime_error("Failed to open database");
@@ -476,6 +476,7 @@ std::string fetchDescription(const std::string & name) {
         throw std::runtime_error(sqlite3_errmsg(db));
     }
     std::string provided_desc;
+    sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         provided_desc = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
     }
