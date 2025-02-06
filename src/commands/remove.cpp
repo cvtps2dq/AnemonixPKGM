@@ -35,7 +35,15 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         // Fetch package metadata
         const std::string version = std::get<0>(Database::fetchNameAndVersion(name));
         const std::string arch = std::get<1>(Database::fetchNameAndVersion(name));
-        const std::desc = Database::fetchDescription(name);
+
+        if (const std::string desc = Database::fetchDescription(name); desc.contains("provided by:")) {
+            std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
+            std::cout << "----------------------------------------\n";
+            std::cout << "this package is provided by: " << YELLOW << "\n";
+            std::cout << "-> " << desc.substr(1, desc.find("provided by: "));
+            std::cout << CYAN <<"remove that package to remove this one automatically" << "\n" << RESET;
+            std::cout << "! Aborting removal.\n";
+        }
 
         // Fetch file list
         const std::vector<std::string> files = Database::fetchFiles(name);

@@ -37,7 +37,7 @@ class Database {
     static bool markAsBroken(const std::string& name, const std::string& deps_str);
     static std::vector<std::string> checkPkgReliance(const std::string& name);
 
-    void fetchDescription(const std::string & name);
+    static std::string fetchDescription(const std::string & name);
 };
 
 
