@@ -84,12 +84,14 @@ int compareVersions(const std::string& v1, const std::string& v2) {
 
 bool installPkg(const std::filesystem::path &package_root, bool force, bool reinstall) {
     try {
+        std::cout << "yaml" << std::endl;
         YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
         const auto name = config["name"].as<std::string>();
         const auto version = config["version"].as<std::string>();
         const auto arch = config["arch"].as<std::string>();
         const auto description = config["description"].as<std::string>();
 
+        std::cout << "provide parse" << std::endl;
         // Parse 'provides'
         std::vector<std::pair<std::string, std::string>> provided_items;
         if (config["provides"]) {
@@ -104,6 +106,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             }
         }
 
+        std::cout << "deps get" << std::endl;
         std::vector<std::string> dependencies;
         if (config["deps"]) {
             for (const auto& dep : config["deps"]) {
@@ -112,6 +115,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
         std::string deps_str = dependencies.empty() ? "" : fmt::format("{}", fmt::join(dependencies, ","));
 
+        std::cout << "version compare" << std::endl;
         // Handle version comparison if already installed
         if (std::string installed_version = Database::getPkgVersion(name); !installed_version.empty()) {
             if (int cmp = compareVersions(version, installed_version); cmp > 0) {
@@ -141,6 +145,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             Anemo::remove(name, force, true);
         }
 
+        std::cout << "missing deps" << std::endl;
         // Check for missing dependencies
         std::vector<std::string> missing_deps = Database::checkDependencies(dependencies);
 
@@ -155,7 +160,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         if (!missing_deps.empty()) {
             std::cout << YELLOW << "Warning: Proceeding with installation despite missing dependencies.\n" << RESET;
         }
-
+        std::cout << "install confirm" << std::endl;
         // Confirm installation
         char choice;
         if (AConf::BSTRAP_PATH.empty()) {
@@ -170,7 +175,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             remove_all(package_root);
             return false;
         }
-
+        std::cout << "copy" << std::endl;
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
         const char spin_chars[] = {'|', '/', '-', '\\'};
@@ -183,6 +188,8 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         } catch (const std::exception &e) {
             std::cerr << YELLOW << "warn :: write skip, file exists" << RESET << "\n";
         }
+
+        std::cout << "db file records" << std::endl;
 
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
             std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
@@ -205,17 +212,21 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         std::cout << "[ OK ] Copying done.";
         std::cout << std::endl;
 
+        std::cout << "install script" << std::endl;
+
         if (std::filesystem::path install_script = package_root / "install.anemonix"; exists(install_script)) {
             if (system(install_script.string().c_str()) != 0) {
                 throw std::runtime_error("install.anemonix script failed");
             }
         }
 
+        std::cout << "insert into db" << std::endl;
         // Insert package into DB
         if(!Database::insertPkg(name, version, arch, deps_str, description)){
             throw::std::runtime_error("failed to insert pkg into the database!");
         }
 
+        std::cout << "insert provided" << std::endl;
         // Insert provided items into the database
         for (const auto& [prov_name, prov_version] : provided_items) {
             std::string desc = "provided by: " + name;
@@ -225,20 +236,21 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::cout << GREEN << "-> Provided package " << prov_name << "=" << prov_version << " registered successfully!\n" << RESET;
             }
         }
-        
+        std::cout << "mark" << std::endl;
         // Mark package as broken if dependencies are missing
         if (!missing_deps.empty()) {
             Database::markAsBroken(name, deps_str);
         }
 
-
+        std::cout << "done" << std::endl;
         std::cout << GREEN << ":) Successfully installed " << name << " v" << version << "\n" << RESET;
         try{
+
             remove_all(package_root);
         } catch(std::exception e){
             std::cout << "failed to remove package root. " << e.what() << std::endl;
         }
-        
+        std::cout << "removed dir. all done :)" << std::endl;
         return true;
 
     } catch (const std::exception& e) {
