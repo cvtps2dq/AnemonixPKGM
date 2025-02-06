@@ -119,7 +119,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
-        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+        for (const auto& file : std::filesystem::directory_iterator(package_dir)) {
             std::cout << "moving file: " << file << std::endl;
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
