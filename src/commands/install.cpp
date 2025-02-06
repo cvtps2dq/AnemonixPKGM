@@ -165,21 +165,23 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::filesystem::copy_options::copy_symlinks |
                 std::filesystem::copy_options::update_existing);
 
-        // for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
-        //     std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
-        //     std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
-        //
-        //     try {
-        //         std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file.path();
-        //         std::cout.flush();
-        //         spin_index = (spin_index + 1) % 4;
-        //         copyFileWithMetadata(file, full_target_path);
-        //         //Database::writePkgFilesRecord(name, full_target_path);
-        //
-        //     } catch (const std::exception& e) {
-        //         std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
-        //     }
-        // }
+        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+            std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
+            std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
+
+            try {
+                std::cout << "\r[ " << spin_chars[spin_index] << " ] setting: " << file.path();
+                std::cout.flush();
+                spin_index = (spin_index + 1) % 4;
+                preserveOwnership(file, full_target_path);
+                preserveACLs(file, full_target_path);
+                preserveExtendedAttributes(file, full_target_path);
+                //Database::writePkgFilesRecord(name, full_target_path);
+
+            } catch (const std::exception& e) {
+                std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
+            }
+        }
 
         std::cout << "[ OK ] Copying done." << std::endl;
         std::cout.flush();
