@@ -92,7 +92,6 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
     archive_read_free(a);
     archive_write_close(ext);
     archive_write_free(ext);
-    throw std::runtime_error("STOP for file investigate");
     return true;
 }
 

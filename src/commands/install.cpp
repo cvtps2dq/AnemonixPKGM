@@ -124,47 +124,13 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
             try {
-                if (std::filesystem::is_directory(file)) {
-                    std::cout << "dir: " << file << std::endl;
-                    std::filesystem::create_directories(full_target_path);
-                } else if (std::filesystem::is_symlink(file)) {
-                    // Copy symlink explicitly to preserve broken symlinks
-                    std::cout << "symink: " << file << std::endl;
-                    std::filesystem::copy_symlink(file, full_target_path);
-                } else {
-                    // Ensure the target directory exists before copying
-                    //std::filesystem::create_directories(full_target_path.parent_path());
+                // Insert copied file path into database
+                Database::writePkgFilesRecord(name, target_path.string());
+                // move file
+                rename(file, full_target_path);
 
-                    std::filesystem::file_status status = std::filesystem::status(file);
-
-                    if (is_regular_file(status))
-                        std::cout << file << " is a regular file\n";
-                    else if (is_directory(status))
-                        std::cout << file << " is a directory\n";
-                    else if (is_symlink(status))
-                        std::cout << file << " is a symbolic link\n";
-                    else if (is_block_file(status))
-                        std::cout << file << " is a block device\n";
-                    else if (is_character_file(status))
-                        std::cout << file << " is a character device\n";
-                    else if (is_fifo(status))
-                        std::cout << file << " is a FIFO (named pipe)\n";
-                    else if (is_socket(status))
-                        std::cout << file << " is a socket\n";
-                    else
-                        std::cout << file << " is of unknown type\n";
-
-                    // Insert copied file path into database
-                    Database::writePkgFilesRecord(name, target_path.string());
-
-                    // Copy file while preserving attributes, symlinks, and replacing existing files
-                    std::filesystem::copy(file, full_target_path,
-                        std::filesystem::copy_options::overwrite_existing |
-                        std::filesystem::copy_options::copy_symlinks |
-                        std::filesystem::copy_options::update_existing);
-                }
             } catch (const std::exception& e) {
-                std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
+                std::cerr << "Error moving " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
             }
         }
 
