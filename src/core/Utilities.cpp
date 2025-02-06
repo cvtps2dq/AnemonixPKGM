@@ -37,73 +37,60 @@ bool Utilities::initFolders() {
 }
 
 bool Utilities::untarPKG(const std::string& package_path, const std::string& extract_to) {
-    archive* a = archive_read_new();
-    archive_read_support_format_all(a);
+    struct archive* a;
+    struct archive* ext;
+    struct archive_entry* entry;
+    int r;
+
+    // Open the tar archive for reading
+    a = archive_read_new();
+    archive_read_support_format_tar(a);
     archive_read_support_filter_all(a);
 
-    if (archive_read_open_filename(a, package_path.c_str(), 10240) != ARCHIVE_OK) {
-        std::cerr << "Error opening package: " << archive_error_string(a) << "\n";
-        archive_read_free(a);
+    if ((archive_read_open_filename(a, package_path.c_str(), 10240) != ARCHIVE_OK)) {
+        std::cerr << "Error opening archive: " << archive_error_string(a) << std::endl;
         return false;
     }
 
-    archive_entry* entry;
-    constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
-                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR;
+    // Create an archive for extraction
+    ext = archive_write_disk_new();
+    archive_write_disk_set_options(ext, ARCHIVE_EXTRACT_TIME |  // Preserve timestamps
+                                         ARCHIVE_EXTRACT_PERM |  // Preserve permissions
+                                         ARCHIVE_EXTRACT_ACL |   // Preserve ACLs
+                                         ARCHIVE_EXTRACT_XATTR | // Preserve xattrs
+                                         ARCHIVE_EXTRACT_OWNER); // Preserve ownership
 
-    archive* ext = archive_write_disk_new();
-    archive_write_disk_set_options(ext, flags);
-    archive_write_disk_set_standard_lookup(ext);
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        const char* entry_name = archive_entry_pathname(entry);
+        std::cout << "Extracting: " << entry_name << std::endl;
 
-    while (true) {
-        int r = archive_read_next_header(a, &entry);
-        if (r == ARCHIVE_EOF) break;
-        if (r != ARCHIVE_OK) {
-            std::cerr << "Error reading header: " << archive_error_string(a) << "\n";
-            archive_read_free(a);
-            archive_write_free(ext);
-            return false;
-        }
-
-        // Get the entry path and sanitize it
-        const char* entry_path = archive_entry_pathname(entry);
-        std::string clean_path = entry_path;
-
-        // Remove leading slashes to prevent absolute paths
-        while (!clean_path.empty() && (clean_path[0] == '/' || clean_path[0] == '\\')) {
-            clean_path.erase(0, 1);
-        }
-
-        // Construct the full extraction path
-        std::string full_path = std::filesystem::path(extract_to) / clean_path;
+        // Set output directory
+        std::string full_path = std::string(extract_to) + "/" + entry_name;
         archive_entry_set_pathname(entry, full_path.c_str());
 
-        // Handle symlinks: Preserve the original target path
-        if (archive_entry_filetype(entry) == AE_IFLNK) {
-            const char* symlink_target = archive_entry_symlink(entry);
-            archive_entry_set_symlink(entry, symlink_target); // Preserve the target path
-        }
-
-        // Write the entry to disk
         r = archive_write_header(ext, entry);
         if (r != ARCHIVE_OK) {
-            std::cerr << "Error writing header: " << archive_error_string(ext) << "\n";
-        } else if (archive_entry_size(entry) > 0) {
+            std::cerr << "Error writing header: " << archive_error_string(ext) << std::endl;
+        } else {
             const void* buff;
             size_t size;
             la_int64_t offset;
-            while (ARCHIVE_OK == archive_read_data_block(a, &buff, &size, &offset)) {
-                if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
-                    std::cerr << "Error writing data: " << archive_error_string(ext) << "\n";
-                    break;
-                }
+
+            while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+                archive_write_data_block(ext, buff, size, offset);
+            }
+
+            if (r != ARCHIVE_EOF) {
+                std::cerr << "Error extracting file: " << archive_error_string(a) << std::endl;
             }
         }
 
         archive_write_finish_entry(ext);
     }
 
+    archive_read_close(a);
     archive_read_free(a);
+    archive_write_close(ext);
     archive_write_free(ext);
     return true;
 }
