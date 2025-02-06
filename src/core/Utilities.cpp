@@ -94,7 +94,9 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
 
         archive_write_finish_entry(ext);
     }
-
+    std::cout << "[ OK ]" << " Extracting done." << std::endl;
+        std::cout.flush();
+    std::cout << std::endl;
     archive_read_close(a);
     archive_read_free(a);
     archive_write_close(ext);
