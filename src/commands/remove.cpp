@@ -41,7 +41,7 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
             std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
             std::cout << "----------------------------------------\n";
             std::cout << "this package is provided by: " << YELLOW << "\n";
-            std::cout << "-> " << desc.substr(desc.find("provided by: ") + 1, std::string::npos) << YELLOW << "\n" << RESET;
+            std::cout << "-> " << desc.substr(13, std::string::npos) << YELLOW << "\n" << RESET;
             std::cout << CYAN <<"remove that package to remove this one automatically" << "\n" << RESET;
             std::cout << "! Aborting removal.\n";
         }
