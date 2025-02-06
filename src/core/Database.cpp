@@ -96,6 +96,7 @@ std::string Database::getPkgVersion(const std::string &name) {
 }
 
 bool Database::insertPkg(const std::string &name, const std::string &version, const std::string &arch, const std::string &deps_str) {
+
     sqlite3* db;
     if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
         throw std::runtime_error("Failed to open database");
@@ -113,7 +114,6 @@ bool Database::insertPkg(const std::string &name, const std::string &version, co
         }
         sqlite3_finalize(stmt);
     }
-
     sqlite3_close(db);
     return true;
 }
@@ -130,7 +130,6 @@ bool Database::markAsBroken(const std::string &name, const std::string &deps_str
         sqlite3_bind_text(broken_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(broken_stmt, 2, deps_str.c_str(), -1, SQLITE_STATIC);
         sqlite3_step(broken_stmt);
-        sqlite3_finalize(broken_stmt);
     } else {
         throw std::runtime_error(sqlite3_errmsg(db));
     }

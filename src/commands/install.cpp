@@ -56,7 +56,6 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         std::string deps_str = dependencies.empty() ? "" : fmt::format("{}", fmt::join(dependencies, ","));
 
         
-
         // Check if package is already installed
 
         // Handle version comparison if already installed
@@ -155,13 +154,24 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
 
         // Insert package into DB
-        Database::insertPkg(name, version, arch, deps_str);
+        if(!Database::insertPkg(name, version, arch, deps_str)){
+            throw::std::runtime_error("failed to insert pkg into the database!");
+        }
 
+        
         // Mark package as broken if dependencies are missing
-        if (!missing_deps.empty()) Database::markAsBroken(name, deps_str);
+        if (!missing_deps.empty()) {
+            Database::markAsBroken(name, deps_str);
+        }
+
 
         std::cout << GREEN << ":) Successfully installed " << name << " v" << version << "\n" << RESET;
-        remove_all(package_root);
+        try{
+            remove_all(package_root);
+        } catch(std::exception e){
+            std::cout << "failed to remove package root. " << e.what() << std::endl;
+        }
+        
         return true;
 
     } catch (const std::exception& e) {
@@ -171,6 +181,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 }
 
 bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool reinstall) {
+
     if (!Utilities::isSu()) {
         std::cerr << RED << "err: requires root privileges :( \n" << RESET;
         return false;
