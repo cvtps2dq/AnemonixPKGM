@@ -471,7 +471,7 @@ std::string Database::fetchDescription(const std::string& name) {
     sqlite3_stmt* stmt;
     std::vector<std::string> provided_packages;
 
-    const char* select_provides_sql = "SELECT description FROM packages WHERE name LIKE = ?;";
+    const char* select_provides_sql = "SELECT description FROM packages WHERE name LIKE ?;";
     if (sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
         throw std::runtime_error(sqlite3_errmsg(db));
     }
