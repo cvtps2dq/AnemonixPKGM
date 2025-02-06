@@ -174,11 +174,17 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
+        const char spin_chars[] = {'|', '/', '-', '\\'};
+        int spin_index = 0;
+
         for (const auto& file : std::filesystem::directory_iterator(package_dir)) {
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
             try {
+                std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file;
+                std::cout.flush();
+                spin_index = (spin_index + 1) % 4;
                 // Insert moved file path into database
                 Database::writePkgFilesRecord(name, target_path.string());
                 copyFileWithMetadata(file, full_target_path);
@@ -188,6 +194,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::cerr << "Error moving " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
             }
         }
+
+        std::cout << "[ OK ] Copying done." << std::endl;
+        std::cout.flush();
 
         if (std::filesystem::path install_script = package_root / "install.anemonix"; exists(install_script)) {
             if (system(install_script.string().c_str()) != 0) {
