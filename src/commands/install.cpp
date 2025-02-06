@@ -135,6 +135,25 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                     // Ensure the target directory exists before copying
                     //std::filesystem::create_directories(full_target_path.parent_path());
 
+                    std::filesystem::file_status status = std::filesystem::status(file);
+
+                    if (is_regular_file(status))
+                        std::cout << file << " is a regular file\n";
+                    else if (is_directory(status))
+                        std::cout << file << " is a directory\n";
+                    else if (is_symlink(status))
+                        std::cout << file << " is a symbolic link\n";
+                    else if (is_block_file(status))
+                        std::cout << file << " is a block device\n";
+                    else if (is_character_file(status))
+                        std::cout << file << " is a character device\n";
+                    else if (is_fifo(status))
+                        std::cout << file << " is a FIFO (named pipe)\n";
+                    else if (is_socket(status))
+                        std::cout << file << " is a socket\n";
+                    else
+                        std::cout << file << " is of unknown type\n";
+
                     // Insert copied file path into database
                     Database::writePkgFilesRecord(name, target_path.string());
 
