@@ -243,8 +243,6 @@ std::vector<std::string> Database::fetchFiles(const std::string &name) {
     return files;
 }
 
-
-
 bool Database::markAffected(const std::vector<std::string>& dependent_packages) {
 
     sqlite3* db;

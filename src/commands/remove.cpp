@@ -91,6 +91,10 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
 
         // Remove provided packages
         for (const auto& prov : provided_packages) {
+            size_t pos = prov.find('=');
+            if (pos != std::string::npos) {
+                std::string prov_name = prov.substr(0, pos);
+            }
             Database::removePkg(prov);
             std::cout << "[OK] Removed provided package: " << prov << "\n";
         }
