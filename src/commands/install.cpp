@@ -212,7 +212,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
 
         // Insert package into DB
-        if(!Database::insertPkg(name, version, arch, deps_str, TODO)){
+        if(!Database::insertPkg(name, version, arch, deps_str, description)){
             throw::std::runtime_error("failed to insert pkg into the database!");
         }
 
