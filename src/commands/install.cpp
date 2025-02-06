@@ -63,7 +63,7 @@ void copyFileWithMetadata(const std::filesystem::path& source, const std::filesy
         std::filesystem::path parent_dir = destination.parent_path();
 
         // Copy file while preserving symlinks
-        copy(source, destination, std::filesystem::copy_options::recursive |
+        std::filesystem::copy_file(source, destination,
             std::filesystem::copy_options::update_existing |
             std::filesystem::copy_options::copy_symlinks);
 
@@ -178,7 +178,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         int spin_index = 0;
 
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
-            std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
+            std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
             try {
