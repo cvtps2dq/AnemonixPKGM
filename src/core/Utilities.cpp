@@ -20,6 +20,7 @@
 #endif
 
 #include "config.h"
+#include <fstream>
 
 bool Utilities::isSu() {
     return geteuid() == 0;
@@ -47,7 +48,8 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
     }
 
     archive_entry* entry;
-    constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS;
+    constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
+                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR;
 
     archive* ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
@@ -66,6 +68,30 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
         std::string full_path = extract_to + "/" + archive_entry_pathname(entry);
         archive_entry_set_pathname(entry, full_path.c_str());
 
+        // Handle symlinks explicitly
+        if (archive_entry_filetype(entry) == AE_IFLNK) {
+            const char* link_target = archive_entry_symlink(entry);
+            std::string target_path = extract_to + "/" + link_target;
+
+            // Ensure the target exists or create a placeholder
+            if (!std::filesystem::exists(target_path)) {
+                std::ofstream placeholder(target_path);
+                placeholder.close();
+            }
+        }
+
+        // Handle hardlinks explicitly
+        if (archive_entry_hardlink(entry)) {
+            std::string hardlink_target = extract_to + "/" + archive_entry_hardlink(entry);
+
+            // Ensure hardlink target exists, create empty file if necessary
+            if (!std::filesystem::exists(hardlink_target)) {
+                std::ofstream placeholder(hardlink_target);
+                placeholder.close();
+            }
+        }
+
+        // Write entry to disk
         r = archive_write_header(ext, entry);
         if (r != ARCHIVE_OK) {
             std::cerr << "Error writing header: " << archive_error_string(ext) << "\n";
@@ -80,6 +106,7 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
                 }
             }
         }
+
         archive_write_finish_entry(ext);
     }
 
