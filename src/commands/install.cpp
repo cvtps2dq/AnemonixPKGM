@@ -171,7 +171,8 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             try {
                 // Insert moved file path into database
                 Database::writePkgFilesRecord(name, target_path.string());
-                rename(file, full_target_path);
+                copyFileWithMetadata(file, full_target_path);
+                //rename(file, full_target_path);
 
             } catch (const std::exception& e) {
                 std::cerr << "Error moving " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
