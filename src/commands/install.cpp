@@ -68,7 +68,7 @@ void copyFileWithMetadata(const std::filesystem::path& source, const std::filesy
         }
 
         // Copy file while preserving symlinks
-        std::filesystem::copy(source, destination,
+        std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive |
             std::filesystem::copy_options::update_existing |
             std::filesystem::copy_options::copy_symlinks);
 
