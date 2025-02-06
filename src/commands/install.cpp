@@ -161,7 +161,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         const char spin_chars[] = {'|', '/', '-', '\\'};
         int spin_index = 0;
         std::filesystem::copy(package_dir, AConf::BSTRAP_PATH + "/",
-            std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks);
+            std::filesystem::copy_options::recursive |
+                std::filesystem::copy_options::copy_symlinks |
+                std::filesystem::copy_options::update_existing);
 
         // for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
         //     std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
