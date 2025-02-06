@@ -58,18 +58,28 @@ void preserveExtendedAttributes(const std::filesystem::path& source, const std::
 }
 
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
-    // Ensure parent directory exists
-    std::filesystem::create_directories(destination.parent_path());
+    try {
+        // Extract the parent directory
+        std::filesystem::path parent_dir = destination.parent_path();
 
-    // Copy file while preserving symlinks
-    std::filesystem::copy(source, destination,
-        std::filesystem::copy_options::update_existing |
-        std::filesystem::copy_options::copy_symlinks);
+        // Ensure the parent directory exists
+        if (!parent_dir.empty() && !std::filesystem::exists(parent_dir)) {
+            std::filesystem::create_directories(parent_dir);
+        }
 
-    // Preserve metadata
-    preserveOwnership(source, destination);
-    preserveACLs(source, destination);
-    preserveExtendedAttributes(source, destination);
+        // Copy file while preserving symlinks
+        std::filesystem::copy(source, destination,
+            std::filesystem::copy_options::update_existing |
+            std::filesystem::copy_options::copy_symlinks);
+
+        // Preserve metadata
+        preserveOwnership(source, destination);
+        preserveACLs(source, destination);
+        preserveExtendedAttributes(source, destination);
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error copying file " << source << " -> " << destination << ": " << e.what() << std::endl;
+    }
 }
 
 int compareVersions(const std::string& v1, const std::string& v2) {
