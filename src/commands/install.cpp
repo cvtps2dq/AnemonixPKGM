@@ -174,7 +174,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 preserveOwnership(file, full_target_path);
                 preserveACLs(file, full_target_path);
                 preserveExtendedAttributes(file, full_target_path);
-                //Database::writePkgFilesRecord(name, full_target_path);
+                if (!is_directory(file)) {
+                    Database::writePkgFilesRecord(name, full_target_path);
+                }
 
             } catch (const std::exception& e) {
                 std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
