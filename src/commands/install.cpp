@@ -119,15 +119,32 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
 
         // Run build script
-        for (std::filesystem::path package_dir = package_root / "package";
-            const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+        std::filesystem::path package_dir = package_root / "package";
+        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir, std::filesystem::directory_options::follow_directory_symlink)) {
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
-            if (is_directory(file)) {
-                std::filesystem::create_directories( AConf::BSTRAP_PATH + target_path.c_str());
-            } else {
-                // Insert copied file path into database
-                Database::writePkgFilesRecord(name, target_path.c_str());
-                copy(file, AConf::BSTRAP_PATH + target_path.c_str(), std::filesystem::copy_options::overwrite_existing);
+            std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
+
+            try {
+                if (std::filesystem::is_directory(file)) {
+                    std::filesystem::create_directories(full_target_path);
+                } else if (std::filesystem::is_symlink(file)) {
+                    // Copy symlink explicitly to preserve broken symlinks
+                    std::filesystem::copy_symlink(file, full_target_path);
+                } else {
+                    // Ensure the target directory exists before copying
+                    std::filesystem::create_directories(full_target_path.parent_path());
+
+                    // Insert copied file path into database
+                    Database::writePkgFilesRecord(name, target_path.string());
+
+                    // Copy file while preserving attributes, symlinks, and replacing existing files
+                    std::filesystem::copy(file, full_target_path,
+                        std::filesystem::copy_options::overwrite_existing |
+                        std::filesystem::copy_options::copy_symlinks |
+                        std::filesystem::copy_options::update_existing);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
             }
         }
 
