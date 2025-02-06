@@ -125,6 +125,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
             try {
                 if (std::filesystem::is_directory(file)) {
+                    std::cout << "dir: " << file << std::endl;
                     std::filesystem::create_directories(full_target_path);
                 } else if (std::filesystem::is_symlink(file)) {
                     // Copy symlink explicitly to preserve broken symlinks
