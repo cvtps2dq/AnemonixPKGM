@@ -397,3 +397,34 @@ bool Database::auditPkgs(const std::vector<std::pair<std::string,
     sqlite3_close(db);
     return true;
 }
+
+std::vector<std::string> Database::fetchProvidedPackages(const std::string &name) {
+    std::vector<std::string> provided_packages;
+    try {
+        sqlite3 *db;
+        sqlite3_stmt *stmt;
+        std::string query = "SELECT name FROM packages WHERE description LIKE 'provided by: " + name + "'";
+
+        if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+            std::cerr << "Failed to open database\n";
+            throw std::runtime_error("Failed to open database");
+        }
+
+        if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+            sqlite3_close(db);
+            throw std::runtime_error("Failed to prepare query");
+        }
+
+        provided_packages.reserve(1);
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            provided_packages.emplace_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+        }
+
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+    } catch (const std::exception &e) {
+        std::cerr << "Database error: " << e.what() << std::endl;
+    }
+
+    return provided_packages;
+}

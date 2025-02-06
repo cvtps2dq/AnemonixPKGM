@@ -44,6 +44,9 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
             return false;
         }
 
+        // Fetch provided packages
+        const std::vector<std::string> provided_packages = Database::fetchProvidedPackages(name);
+
         // Print metadata & files
         std::cout << "\n! Package Removal Confirmation !\n";
         std::cout << "------------------------------------\n";
@@ -54,6 +57,11 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         std::cout << "Installed Files:\n";
         for (const auto& file : files) {
             std::cout << "   -> " << file << "\n";
+        }
+        std::cout << "------------------------------------\n";
+        std::cout << "Provided Packages:\n";
+        for (const auto& prov : provided_packages) {
+            std::cout << "   -> " << prov << "\n";
         }
         std::cout << "------------------------------------\n";
         std::cout << "Proceed with removal? (y/n): ";
@@ -78,8 +86,14 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         if (force && !dependent_packages.empty() && !update)
             Database::markAffected(dependent_packages);
 
-        // Remove database entries
+        // Remove database entries for the main package
         Database::removePkg(name);
+
+        // Remove provided packages
+        for (const auto& prov : provided_packages) {
+            Database::removePkg(prov);
+            std::cout << "[OK] Removed provided package: " << prov << "\n";
+        }
 
         std::cout << "[OK] Successfully removed " << name << "\n";
         return true;

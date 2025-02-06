@@ -30,6 +30,8 @@ class Database {
 
     static bool auditPkgs(const std::vector<std::pair<std::string, std::vector<std::string>>> &broken_packages);
 
+    static std::vector<std::string> fetchProvidedPackages(const std::string &name);
+
     static bool insertPkg(const std::string& name, const std::string& version,
                           const std::string& arch, const std::string& deps_str);
     static bool markAsBroken(const std::string& name, const std::string& deps_str);
