@@ -232,7 +232,7 @@ std::vector<std::string> Database::fetchFiles(const std::string &name) {
 
     sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        files.emplace_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+        files.emplace_back( AConf::BSTRAP_PATH + reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
     }
     sqlite3_finalize(stmt);
     sqlite3_close(db);
