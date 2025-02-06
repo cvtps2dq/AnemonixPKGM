@@ -177,21 +177,25 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         const char spin_chars[] = {'|', '/', '-', '\\'};
         int spin_index = 0;
 
-        for (const auto& file : std::filesystem::directory_iterator(package_dir)) {
+        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
             try {
-                std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file;
+                std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file.path();
                 std::cout.flush();
                 spin_index = (spin_index + 1) % 4;
+
                 // Insert moved file path into database
                 Database::writePkgFilesRecord(name, target_path.string());
-                copyFileWithMetadata(file, full_target_path);
-                //rename(file, full_target_path);
+
+                // Only call copyFileWithMetadata() if it's a directory
+                if (std::filesystem::is_directory(file)) {
+                    copyFileWithMetadata(file, full_target_path);
+                }
 
             } catch (const std::exception& e) {
-                std::cerr << "Error moving " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
+                std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
             }
         }
 
