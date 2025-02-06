@@ -65,32 +65,23 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
             return false;
         }
 
-        std::string full_path = extract_to + "/" + archive_entry_pathname(entry);
+        // Sanitize path: remove leading slashes and prevent directory traversal
+        const char* entry_path = archive_entry_pathname(entry);
+        std::string clean_path = entry_path;
+
+        // Remove leading slashes
+        while (!clean_path.empty() && (clean_path[0] == '/' || clean_path[0] == '\\')) {
+            clean_path.erase(0, 1);
+        }
+
+        // Prevent path traversal (rudimentary check)
+        if (clean_path.find("..") != std::string::npos) {
+            std::cerr << "Skipping potentially dangerous path: " << clean_path << "\n";
+            continue;
+        }
+
+        std::string full_path = std::filesystem::path(extract_to) / clean_path;
         archive_entry_set_pathname(entry, full_path.c_str());
-
-        // Handle symlinks explicitly
-        if (archive_entry_filetype(entry) == AE_IFLNK) {
-            const char* link_target = archive_entry_symlink(entry);
-            std::string target_path = extract_to + "/" + link_target;
-
-            // Create the symlink directly
-            if (std::filesystem::exists(full_path)) {
-                std::filesystem::remove(full_path); // Remove existing file/directory if it exists
-            }
-            std::filesystem::create_symlink(link_target, full_path);
-            continue; // Skip writing the entry to disk, as we've already created the symlink
-        }
-
-        // Handle hardlinks explicitly
-        if (archive_entry_hardlink(entry)) {
-            std::string hardlink_target = extract_to + "/" + archive_entry_hardlink(entry);
-
-            // Ensure hardlink target exists, create empty file if necessary
-            if (!std::filesystem::exists(hardlink_target)) {
-                std::ofstream placeholder(hardlink_target);
-                placeholder.close();
-            }
-        }
 
         // Write entry to disk
         r = archive_write_header(ext, entry);
