@@ -58,12 +58,8 @@ void preserveExtendedAttributes(const std::filesystem::path& source, const std::
 }
 
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
-    try {
-
-        rename(source, destination);
-
-
-    } catch (const std::exception& e) {
+    try { if (!exists(destination))rename(source, destination);}
+    catch (const std::exception& e) {
         std::cerr << "Error copying file " << source << " -> " << destination << ": " << e.what() << std::endl;
     }
 }
@@ -165,7 +161,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         const char spin_chars[] = {'|', '/', '-', '\\'};
         int spin_index = 0;
 
-        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+        for (const auto& file : std::filesystem::directory_iterator(package_dir)) {
             std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
