@@ -120,13 +120,13 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+            std::cout << "moving file: " << file << std::endl;
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
             try {
                 // Insert moved file path into database
                 Database::writePkgFilesRecord(name, target_path.string());
-                std::cout << "moving file: " << target_path << std::endl;
                 rename(file, full_target_path);
 
             } catch (const std::exception& e) {
