@@ -183,7 +183,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
             try {
                 std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file.path();
-                std::cout.flush();
+                //std::cout.flush();
                 spin_index = (spin_index + 1) % 4;
 
                 // Insert moved file path into database
