@@ -36,8 +36,8 @@ bool Database::init() {
         CREATE TABLE IF NOT EXISTS broken_packages (
             name TEXT PRIMARY KEY,
             missing_deps TEXT DEFAULT '',
-            FOREIGN KEY (name) REFERENCES packages(name) ON DELETE CASCADE,
-            description TEXT DEFAULT ''
+            description TEXT DEFAULT '',
+            FOREIGN KEY (name) REFERENCES packages(name) ON DELETE CASCADE
         );
     )";
 
