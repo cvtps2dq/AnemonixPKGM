@@ -160,10 +160,14 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         std::filesystem::path package_dir = package_root / "package";
         const char spin_chars[] = {'|', '/', '-', '\\'};
         int spin_index = 0;
-        std::filesystem::copy(package_dir, AConf::BSTRAP_PATH + "/",
-            std::filesystem::copy_options::recursive |
-                std::filesystem::copy_options::copy_symlinks |
-                std::filesystem::copy_options::update_existing);
+        try {
+            std::filesystem::copy(package_dir, AConf::BSTRAP_PATH + "/",
+                std::filesystem::copy_options::recursive |
+                    std::filesystem::copy_options::copy_symlinks |
+                    std::filesystem::copy_options::update_existing);
+        } catch (const std::exception &e) {
+            std::cerr << YELLOW << "warn :: write skip, file exists" << "\n";
+        }
 
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
             std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
