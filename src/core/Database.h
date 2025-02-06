@@ -32,8 +32,8 @@ class Database {
 
     static std::vector<std::string> fetchProvidedPackages(const std::string &name);
 
-    static bool insertPkg(const std::string& name, const std::string& version,
-                          const std::string& arch, const std::string& deps_str);
+    static bool insertPkg(const std::string &name, const std::string &version,
+                          const std::string &arch, const std::string &deps_str, const std::string &description);
     static bool markAsBroken(const std::string& name, const std::string& deps_str);
     static std::vector<std::string> checkPkgReliance(const std::string& name);
 };

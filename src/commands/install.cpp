@@ -88,6 +88,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         const auto name = config["name"].as<std::string>();
         const auto version = config["version"].as<std::string>();
         const auto arch = config["arch"].as<std::string>();
+        const auto description = config["description"].as<std::string>();
 
         // Parse 'provides'
         std::vector<std::pair<std::string, std::string>> provided_items;
@@ -211,14 +212,14 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
 
         // Insert package into DB
-        if(!Database::insertPkg(name, version, arch, deps_str)){
+        if(!Database::insertPkg(name, version, arch, deps_str, TODO)){
             throw::std::runtime_error("failed to insert pkg into the database!");
         }
 
         // Insert provided items into the database
         for (const auto& [prov_name, prov_version] : provided_items) {
-            std::string description = "provided by: " + name;
-            if (!Database::insertPkg(prov_name, prov_version, arch, description)) {
+            std::string desc = "provided by: " + name;
+            if (!Database::insertPkg(prov_name, prov_version, arch, "", desc)) {
                 std::cerr << RED << "Failed to insert provided package: " << prov_name << RESET << "\n";
             } else {
                 std::cout << GREEN << "-> Provided package " << prov_name << "=" << prov_version << " registered successfully!\n" << RESET;

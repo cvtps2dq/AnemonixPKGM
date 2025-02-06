@@ -23,7 +23,8 @@ bool Database::init() {
             name TEXT PRIMARY KEY,
             version TEXT,
             arch TEXT,
-            deps TEXT DEFAULT ''
+            deps TEXT DEFAULT '',
+            description TEXT DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS files (
@@ -35,7 +36,8 @@ bool Database::init() {
         CREATE TABLE IF NOT EXISTS broken_packages (
             name TEXT PRIMARY KEY,
             missing_deps TEXT DEFAULT '',
-            FOREIGN KEY (name) REFERENCES packages(name) ON DELETE CASCADE
+            FOREIGN KEY (name) REFERENCES packages(name) ON DELETE CASCADE,
+            description TEXT DEFAULT ''
         );
     )";
 
@@ -95,7 +97,7 @@ std::string Database::getPkgVersion(const std::string &name) {
     return installed_version;
 }
 
-bool Database::insertPkg(const std::string &name, const std::string &version, const std::string &arch, const std::string &deps_str) {
+bool Database::insertPkg(const std::string &name, const std::string &version, const std::string &arch, const std::string &deps_str, const std::string &description) {
 
     sqlite3* db;
     if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
@@ -103,12 +105,13 @@ bool Database::insertPkg(const std::string &name, const std::string &version, co
     }
 
     sqlite3_stmt* stmt;
-    if (const auto insert_sql = "INSERT INTO packages (name, version, arch, deps) VALUES (?, ?, ?, ?);";
+    if (const auto insert_sql = "INSERT INTO packages (name, version, arch, deps, description) VALUES (?, ?, ?, ?, ?);";
         sqlite3_prepare_v2(db, insert_sql, -1, &stmt, nullptr) == SQLITE_OK) {
         sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 2, version.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 3, arch.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 4, deps_str.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, description.c_str(), -1, SQLITE_STATIC);
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             throw std::runtime_error(sqlite3_errmsg(db));
         }
