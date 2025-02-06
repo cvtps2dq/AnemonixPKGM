@@ -417,6 +417,7 @@ std::vector<std::string> Database::fetchProvidedPackages(const std::string &name
 
         provided_packages.reserve(1);
         while (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::cout << "fetch prov: " << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)) << std::endl;
             provided_packages.emplace_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
         }
 
