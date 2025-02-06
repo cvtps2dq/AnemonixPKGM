@@ -183,15 +183,15 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
             try {
                 std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file.path();
-                //std::cout.flush();
+                std::cout.flush();
                 spin_index = (spin_index + 1) % 4;
 
-                // Insert moved file path into database
-                Database::writePkgFilesRecord(name, target_path.string());
-
-                // Only call copyFileWithMetadata() if it's a directory
                 if (std::filesystem::is_directory(file)) {
+                    // Copy directories but don't store them in the database
                     copyFileWithMetadata(file, full_target_path);
+                } else {
+                    // Only store files in the database
+                    Database::writePkgFilesRecord(name, target_path.string());
                 }
 
             } catch (const std::exception& e) {
