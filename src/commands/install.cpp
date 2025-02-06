@@ -58,10 +58,15 @@ void preserveExtendedAttributes(const std::filesystem::path& source, const std::
 }
 
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    // Ensure parent directory exists
+    std::filesystem::create_directories(destination.parent_path());
+
+    // Copy file while preserving symlinks
     std::filesystem::copy(source, destination,
         std::filesystem::copy_options::update_existing |
         std::filesystem::copy_options::copy_symlinks);
 
+    // Preserve metadata
     preserveOwnership(source, destination);
     preserveACLs(source, destination);
     preserveExtendedAttributes(source, destination);
