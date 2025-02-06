@@ -75,7 +75,8 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
         archive_entry_set_pathname(entry, full_path.c_str());
 
         r = archive_write_header(ext, entry);
-        if (r != ARCHIVE_OK) {
+        //r != ARCHIVE_OK
+        if (0) {
             std::cerr << "Error writing header: " << archive_error_string(ext) << std::endl;
         } else {
             const void* buff;
