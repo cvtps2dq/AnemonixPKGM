@@ -69,7 +69,7 @@ void copyFileWithMetadata(const std::filesystem::path& source, const std::filesy
 
         // Copy file while preserving symlinks
         std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive |
-            std::filesystem::copy_options::overwrite_existing |
+            std::filesystem::copy_options::update_existing |
             std::filesystem::copy_options::copy_symlinks);
 
         // Preserve metadata
@@ -179,7 +179,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
-        for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
+        for (const auto& file : std::filesystem::directory_iterator(package_dir)) {
             std::filesystem::path target_path = "/" / file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
 
