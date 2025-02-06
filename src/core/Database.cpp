@@ -240,6 +240,8 @@ std::vector<std::string> Database::fetchFiles(const std::string &name) {
     return files;
 }
 
+
+
 bool Database::markAffected(const std::vector<std::string>& dependent_packages) {
 
     sqlite3* db;
@@ -398,34 +400,63 @@ bool Database::auditPkgs(const std::vector<std::pair<std::string,
     return true;
 }
 
+// std::vector<std::string> Database::fetchProvidedPackages(const std::string &name) {
+//     std::vector<std::string> provided_packages;
+//     try {
+//         sqlite3 *db;
+//         sqlite3_stmt *stmt;
+//         const std::string query = "SELECT name FROM packages WHERE description LIKE 'provided by: " + name + "'";
+//
+//         if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+//             std::cerr << "Failed to open database\n";
+//             throw std::runtime_error("Failed to open database");
+//         }
+//
+//         if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+//             sqlite3_close(db);
+//             throw std::runtime_error("Failed to prepare query");
+//         }
+//
+//         provided_packages.reserve(1);
+//         while (sqlite3_step(stmt) == SQLITE_ROW) {
+//             std::cout << "fetch prov: " << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)) << std::endl;
+//             provided_packages.emplace_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+//         }
+//
+//         sqlite3_finalize(stmt);
+//         sqlite3_close(db);
+//     } catch (const std::exception &e) {
+//         std::cerr << "Database error: " << e.what() << std::endl;
+//     }
+//
+//     return provided_packages;
+// }
+
 std::vector<std::string> Database::fetchProvidedPackages(const std::string &name) {
-    std::vector<std::string> provided_packages;
-    try {
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
-        std::string query = "SELECT name FROM packages WHERE description LIKE 'provided by: " + name + "'";
-
-        if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
-            std::cerr << "Failed to open database\n";
-            throw std::runtime_error("Failed to open database");
-        }
-
-        if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-            sqlite3_close(db);
-            throw std::runtime_error("Failed to prepare query");
-        }
-
-        provided_packages.reserve(1);
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::cout << "fetch prov: " << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)) << std::endl;
-            provided_packages.emplace_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-        }
-
-        sqlite3_finalize(stmt);
-        sqlite3_close(db);
-    } catch (const std::exception &e) {
-        std::cerr << "Database error: " << e.what() << std::endl;
+    sqlite3* db;
+    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+        throw std::runtime_error("Failed to open database");
     }
+
+    sqlite3_stmt* stmt;
+    std::vector<std::string> provided_packages;
+
+    const char* select_provides_sql = "SELECT name, version FROM packages WHERE description = ?;";
+    if (sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error(sqlite3_errmsg(db));
+    }
+
+    std::string provided_by_text = "provided by: " + name;
+    sqlite3_bind_text(stmt, 1, provided_by_text.c_str(), -1, SQLITE_STATIC);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        std::string provided_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        std::string provided_version = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        provided_packages.emplace_back(provided_name.append("=") + provided_version);
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
 
     return provided_packages;
 }
