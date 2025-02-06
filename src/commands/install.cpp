@@ -250,7 +250,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
 
     // Move package to final location
     std::filesystem::rename(package_root, target_dir);
-    //remove_all(temp_dir);
+    remove_all(temp_dir);
 
     // Step 5: Install
     if (!installPkg(target_dir, force, reinstall)) {
