@@ -89,6 +89,20 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         const auto version = config["version"].as<std::string>();
         const auto arch = config["arch"].as<std::string>();
 
+        // Parse 'provides'
+        std::vector<std::pair<std::string, std::string>> provided_items;
+        if (config["provides"]) {
+            for (const auto& item : config["provides"]) {
+                auto provides_entry = item.as<std::string>();
+                size_t pos = provides_entry.find('=');
+                if (pos != std::string::npos) {
+                    std::string prov_name = provides_entry.substr(0, pos);
+                    std::string prov_version = provides_entry.substr(pos + 1);
+                    provided_items.emplace_back(prov_name, prov_version);
+                }
+            }
+        }
+
         std::vector<std::string> dependencies;
         if (config["deps"]) {
             for (const auto& dep : config["deps"]) {
@@ -201,6 +215,15 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             throw::std::runtime_error("failed to insert pkg into the database!");
         }
 
+        // Insert provided items into the database
+        for (const auto& [prov_name, prov_version] : provided_items) {
+            std::string description = "provided by: " + name;
+            if (!Database::insertPkg(prov_name, prov_version, arch, description)) {
+                std::cerr << RED << "Failed to insert provided package: " << prov_name << RESET << "\n";
+            } else {
+                std::cout << GREEN << "-> Provided package " << prov_name << "=" << prov_version << " registered successfully!\n" << RESET;
+            }
+        }
         
         // Mark package as broken if dependencies are missing
         if (!missing_deps.empty()) {
