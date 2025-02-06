@@ -60,21 +60,8 @@ void preserveExtendedAttributes(const std::filesystem::path& source, const std::
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
     try {
 
-        if (!exists(destination) && is_directory(source)) {
-            create_directory(destination);
-            preserveOwnership(source, destination);
-            preserveACLs(source, destination);
-            preserveExtendedAttributes(source, destination);
-        } else {
-            copy_file(source, destination,
-                    std::filesystem::copy_options::update_existing |
-                    std::filesystem::copy_options::copy_symlinks);
+        rename(source, destination);
 
-            // Preserve metadata
-            preserveOwnership(source, destination);
-            preserveACLs(source, destination);
-            preserveExtendedAttributes(source, destination);
-        }
 
     } catch (const std::exception& e) {
         std::cerr << "Error copying file " << source << " -> " << destination << ": " << e.what() << std::endl;
