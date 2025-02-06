@@ -42,7 +42,7 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
     struct archive_entry* entry;
     int r;
 
-    const char spin_chars[] = {'|', '/', '-', '\ '};
+    const char spin_chars[] = {'|', '/', '-', '\\'};
     int spin_index = 0;
 
     // Open the tar archive for reading
