@@ -131,7 +131,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                     std::filesystem::copy_symlink(file, full_target_path);
                 } else {
                     // Ensure the target directory exists before copying
-                    std::filesystem::create_directories(full_target_path.parent_path());
+                    //std::filesystem::create_directories(full_target_path.parent_path());
 
                     // Insert copied file path into database
                     Database::writePkgFilesRecord(name, target_path.string());
