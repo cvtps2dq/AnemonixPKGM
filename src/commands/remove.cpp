@@ -37,6 +37,7 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         const std::string arch = std::get<1>(Database::fetchNameAndVersion(name));
 
         if (const std::string desc = Database::fetchDescription(name); desc.contains("provided by:")) {
+            std::cout << desc << std::endl;
             std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
             std::cout << "----------------------------------------\n";
             std::cout << "this package is provided by: " << YELLOW << "\n";
