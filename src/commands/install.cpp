@@ -59,18 +59,22 @@ void preserveExtendedAttributes(const std::filesystem::path& source, const std::
 
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
     try {
-        // Extract the parent directory
-        std::filesystem::path parent_dir = destination.parent_path();
 
-        // Copy file while preserving symlinks
-        std::filesystem::copy_file(source, destination,
-            std::filesystem::copy_options::update_existing |
-            std::filesystem::copy_options::copy_symlinks);
+        if (!exists(destination) && is_directory(source)) {
+            create_directory(destination);
+            preserveOwnership(source, destination);
+            preserveACLs(source, destination);
+            preserveExtendedAttributes(source, destination);
+        } else {
+            copy_file(source, destination,
+                    std::filesystem::copy_options::update_existing |
+                    std::filesystem::copy_options::copy_symlinks);
 
-        // Preserve metadata
-        preserveOwnership(source, destination);
-        preserveACLs(source, destination);
-        preserveExtendedAttributes(source, destination);
+            // Preserve metadata
+            preserveOwnership(source, destination);
+            preserveACLs(source, destination);
+            preserveExtendedAttributes(source, destination);
+        }
 
     } catch (const std::exception& e) {
         std::cerr << "Error copying file " << source << " -> " << destination << ": " << e.what() << std::endl;
@@ -109,9 +113,6 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             }
         }
         std::string deps_str = dependencies.empty() ? "" : fmt::format("{}", fmt::join(dependencies, ","));
-
-        
-        // Check if package is already installed
 
         // Handle version comparison if already installed
         if (std::string installed_version = Database::getPkgVersion(name); !installed_version.empty()) {
@@ -185,14 +186,8 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::cout << "\r[ " << spin_chars[spin_index] << " ] copying: " << file.path();
                 std::cout.flush();
                 spin_index = (spin_index + 1) % 4;
-
-                if (std::filesystem::is_directory(file)) {
-                    // Copy directories but don't store them in the database
-                    copyFileWithMetadata(file, full_target_path);
-                } else {
-                    // Only store files in the database
-                    Database::writePkgFilesRecord(name, target_path.string());
-                }
+                copyFileWithMetadata(file, full_target_path);
+                //Database::writePkgFilesRecord(name, full_target_path);
 
             } catch (const std::exception& e) {
                 std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
