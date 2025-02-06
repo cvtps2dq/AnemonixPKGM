@@ -461,3 +461,27 @@ std::vector<std::string> Database::fetchProvidedPackages(const std::string &name
 
     return provided_packages;
 }
+
+std::string fetchDescription(const std::string & name) {
+    sqlite3* db;
+    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+        throw std::runtime_error("Failed to open database");
+    }
+
+    sqlite3_stmt* stmt;
+    std::vector<std::string> provided_packages;
+
+    const char* select_provides_sql = "SELECT description FROM packages WHERE name LIKE = ?;";
+    if (sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error(sqlite3_errmsg(db));
+    }
+    std::string provided_desc;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        provided_desc = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    return provided_desc;
+}

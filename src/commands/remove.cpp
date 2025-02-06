@@ -35,6 +35,7 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         // Fetch package metadata
         const std::string version = std::get<0>(Database::fetchNameAndVersion(name));
         const std::string arch = std::get<1>(Database::fetchNameAndVersion(name));
+        const std::desc = Database::fetchDescription(name);
 
         // Fetch file list
         const std::vector<std::string> files = Database::fetchFiles(name);
@@ -46,6 +47,8 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
 
         // Fetch provided packages
         const std::vector<std::string> provided_packages = Database::fetchProvidedPackages(name);
+
+
 
         // Print metadata & files
         std::cout << "\n! Package Removal Confirmation !\n";
