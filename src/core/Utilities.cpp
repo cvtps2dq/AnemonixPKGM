@@ -36,6 +36,7 @@ bool Utilities::initFolders() {
     return true;
 }
 
+
 bool Utilities::untarPKG(const std::string& package_path, const std::string& extract_to) {
     archive* a = archive_read_new();
     archive_read_support_format_all(a);
@@ -49,7 +50,8 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
 
     archive_entry* entry;
     constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
-                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR;
+                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR |
+                          ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_SECURE_NODOTDOT;
 
     archive* ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
@@ -68,28 +70,33 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
         std::string full_path = extract_to + "/" + archive_entry_pathname(entry);
         archive_entry_set_pathname(entry, full_path.c_str());
 
-        // Handle symlinks explicitly
+        // Handle symbolic links
         if (archive_entry_filetype(entry) == AE_IFLNK) {
-            std::cout << "untarred a symlink: " << entry << std::endl;
             const char* link_target = archive_entry_symlink(entry);
             std::string target_path = extract_to + "/" + link_target;
 
-            // Ensure the target exists or create a placeholder
-            if (!std::filesystem::exists(target_path)) {
-                std::ofstream placeholder(target_path);
-                placeholder.close();
+            std::error_code ec;
+            if (std::filesystem::exists(full_path, ec)) {
+                std::filesystem::remove(full_path, ec);
             }
+            if (symlink(link_target, full_path.c_str()) != 0) {
+                std::cerr << "Failed to create symlink: " << full_path << " -> " << link_target << "\n";
+            }
+            continue; // Skip writing actual file contents
         }
 
-        // Handle hardlinks explicitly
+        // Handle hardlinks
         if (archive_entry_hardlink(entry)) {
             std::string hardlink_target = extract_to + "/" + archive_entry_hardlink(entry);
 
-            // Ensure hardlink target exists, create empty file if necessary
-            if (!std::filesystem::exists(hardlink_target)) {
-                std::ofstream placeholder(hardlink_target);
-                placeholder.close();
+            std::error_code ec;
+            if (std::filesystem::exists(full_path, ec)) {
+                std::filesystem::remove(full_path, ec);
             }
+            if (link(hardlink_target.c_str(), full_path.c_str()) != 0) {
+                std::cerr << "Failed to create hardlink: " << full_path << " -> " << hardlink_target << "\n";
+            }
+            continue; // Skip writing actual file contents
         }
 
         // Write entry to disk
