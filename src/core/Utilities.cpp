@@ -70,6 +70,7 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
 
         // Handle symlinks explicitly
         if (archive_entry_filetype(entry) == AE_IFLNK) {
+            std::cout << "untarred a symlink: " << entry << std::endl;
             const char* link_target = archive_entry_symlink(entry);
             std::string target_path = extract_to + "/" + link_target;
 
