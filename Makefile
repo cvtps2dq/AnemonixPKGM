@@ -8,7 +8,7 @@ OS := $(shell uname)
 ifeq ($(OS), Linux)
     # Linux-specific includes and libraries
     INCLUDES = -I/usr/local/include -I/usr/include -Isrc/core -Isrc/cli -Isrc/commands
-    LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt -lstdc++fs
+    LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt -lstdc++fs -lacl
     LDFLAGS = -L/usr/local/lib 
 endif
 
