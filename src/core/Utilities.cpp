@@ -67,8 +67,7 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
         const char* entry_name = archive_entry_pathname(entry);
         std::cout << "Extracting: " << entry_name << std::endl;
         // Animate while extracting
-        std::cout << "\r[ " << spin_chars[spin_index] << " ] Extracting: " << entry_name;
-        std::cout.flush();
+        std::cout << "\r[ " << spin_chars[spin_index] << " ] Extracting: " << entry_name << std::flush;
 
         spin_index = (spin_index + 1) % 4;
 
