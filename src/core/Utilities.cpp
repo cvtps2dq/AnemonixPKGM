@@ -36,14 +36,6 @@ bool Utilities::initFolders() {
     return true;
 }
 
-#include <iostream>
-#include <fstream>
-#include <filesystem>
-#include <archive.h>
-#include <archive_entry.h>
-
-namespace fs = std::filesystem;
-
 bool Utilities::untarPKG(const std::string& package_path, const std::string& extract_to) {
     archive* a = archive_read_new();
     archive_read_support_format_all(a);
@@ -57,8 +49,7 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
 
     archive_entry* entry;
     constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL |
-                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR |
-                          ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_SECURE_NODOTDOT;
+                          ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_XATTR;
 
     archive* ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
@@ -74,48 +65,31 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
             return false;
         }
 
-        std::string original_path = archive_entry_pathname(entry);
-
-        // **Fix: Sanitize path to avoid '../'**
-        if (original_path.find("..") != std::string::npos) {
-            std::cerr << "Error: Unsafe path detected -> " << original_path << "\n";
-            continue;
-        }
-
-        std::string full_path = extract_to + "/" + original_path;
+        std::string full_path = extract_to + "/" + archive_entry_pathname(entry);
         archive_entry_set_pathname(entry, full_path.c_str());
 
-        // **Fix: Handle symbolic links properly**
+        // Handle symlinks explicitly
         if (archive_entry_filetype(entry) == AE_IFLNK) {
             const char* link_target = archive_entry_symlink(entry);
-            if (!link_target) continue;
+            std::string target_path = extract_to + "/" + link_target;
 
-            std::string target_path = std::string(link_target);
-            std::error_code ec;
-
-            if (fs::exists(full_path, ec)) {
-                fs::remove(full_path, ec);
+            // Create the symlink directly
+            if (std::filesystem::exists(full_path)) {
+                std::filesystem::remove(full_path); // Remove existing file/directory if it exists
             }
-
-            if (symlink(target_path.c_str(), full_path.c_str()) != 0) {
-                std::cerr << "Failed to create symlink: " << full_path << " -> " << target_path << "\n";
-            }
-            continue;
+            std::filesystem::create_symlink(link_target, full_path);
+            continue; // Skip writing the entry to disk, as we've already created the symlink
         }
 
-        // **Fix: Handle hardlinks properly**
+        // Handle hardlinks explicitly
         if (archive_entry_hardlink(entry)) {
             std::string hardlink_target = extract_to + "/" + archive_entry_hardlink(entry);
 
-            std::error_code ec;
-            if (fs::exists(full_path, ec)) {
-                fs::remove(full_path, ec);
+            // Ensure hardlink target exists, create empty file if necessary
+            if (!std::filesystem::exists(hardlink_target)) {
+                std::ofstream placeholder(hardlink_target);
+                placeholder.close();
             }
-
-            if (link(hardlink_target.c_str(), full_path.c_str()) != 0) {
-                std::cerr << "Failed to create hardlink: " << full_path << " -> " << hardlink_target << "\n";
-            }
-            continue;
         }
 
         // Write entry to disk
