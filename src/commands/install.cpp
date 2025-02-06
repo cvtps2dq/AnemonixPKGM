@@ -62,13 +62,8 @@ void copyFileWithMetadata(const std::filesystem::path& source, const std::filesy
         // Extract the parent directory
         std::filesystem::path parent_dir = destination.parent_path();
 
-        // Ensure the parent directory exists
-        if (!parent_dir.empty() && !std::filesystem::exists(parent_dir)) {
-            //std::filesystem::create_directories(parent_dir);
-        }
-
         // Copy file while preserving symlinks
-        std::filesystem::copy(source, destination, std::filesystem::copy_options::recursive |
+        copy(source, destination, std::filesystem::copy_options::recursive |
             std::filesystem::copy_options::update_existing |
             std::filesystem::copy_options::copy_symlinks);
 
