@@ -65,7 +65,6 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char* entry_name = archive_entry_pathname(entry);
-        std::cout << "Extracting: " << entry_name << std::endl;
         // Animate while extracting
         std::cout << "\r[ " << spin_chars[spin_index] << " ] Extracting: " << entry_name << std::flush;
 
