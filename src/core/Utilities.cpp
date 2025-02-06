@@ -42,6 +42,9 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
     struct archive_entry* entry;
     int r;
 
+    const char spin_chars[] = {'|', '/', '-', '\ '};
+    int spin_index = 0;
+
     // Open the tar archive for reading
     a = archive_read_new();
     archive_read_support_format_tar(a);
@@ -63,6 +66,11 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char* entry_name = archive_entry_pathname(entry);
         std::cout << "Extracting: " << entry_name << std::endl;
+        // Animate while extracting
+        std::cout << "\r[ " << spin_chars[spin_index] << " ] Extracting: " << entry_name;
+        std::cout.flush();
+
+        spin_index = (spin_index + 1) % 4;
 
         // Set output directory
         std::string full_path = std::string(extract_to) + "/" + entry_name;
