@@ -65,25 +65,26 @@ bool Utilities::untarPKG(const std::string& package_path, const std::string& ext
             return false;
         }
 
-        // Sanitize path: remove leading slashes and prevent directory traversal
+        // Get the entry path and sanitize it
         const char* entry_path = archive_entry_pathname(entry);
         std::string clean_path = entry_path;
 
-        // Remove leading slashes
+        // Remove leading slashes to prevent absolute paths
         while (!clean_path.empty() && (clean_path[0] == '/' || clean_path[0] == '\\')) {
             clean_path.erase(0, 1);
         }
 
-        // Prevent path traversal (rudimentary check)
-        if (clean_path.find("..") != std::string::npos) {
-            std::cerr << "Skipping potentially dangerous path: " << clean_path << "\n";
-            continue;
-        }
-
+        // Construct the full extraction path
         std::string full_path = std::filesystem::path(extract_to) / clean_path;
         archive_entry_set_pathname(entry, full_path.c_str());
 
-        // Write entry to disk
+        // Handle symlinks: Preserve the original target path
+        if (archive_entry_filetype(entry) == AE_IFLNK) {
+            const char* symlink_target = archive_entry_symlink(entry);
+            archive_entry_set_symlink(entry, symlink_target); // Preserve the target path
+        }
+
+        // Write the entry to disk
         r = archive_write_header(ext, entry);
         if (r != ARCHIVE_OK) {
             std::cerr << "Error writing header: " << archive_error_string(ext) << "\n";
