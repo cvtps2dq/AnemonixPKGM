@@ -168,7 +168,8 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
             std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
-            std::cerr << "\r[ " << spin_chars[spin_index] << " ] setting attrs: " << file.path() << std::flush;
+            std::cout << "\r[ " << spin_chars[spin_index] << " ] setting attrs: " << file;
+            std::cout.flush();
             spin_index = (spin_index + 1) % 4;
             try {
                 preserveOwnership(file, full_target_path);
