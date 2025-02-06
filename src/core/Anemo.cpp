@@ -16,6 +16,7 @@
 #elif defined (__linux__)
     #include <filesystem>
     #include <vector>
+    #include <string>
 #endif
 
 #include <random>
@@ -26,7 +27,6 @@
 
 bool Anemo::validate(const std::filesystem::path& package_root) {
     const std::unordered_set<std::string> REQUIRED_FILES = {
-        "build.anemonix",
         "anemonix.yaml",
         "package/"
     };

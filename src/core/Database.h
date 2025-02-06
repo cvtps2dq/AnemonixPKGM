@@ -6,6 +6,7 @@
 #define DATABASE_H
 
 #include <vector>
+#include <string>
 
 
 class Database {

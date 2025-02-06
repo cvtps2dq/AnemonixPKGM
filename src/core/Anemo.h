@@ -8,6 +8,8 @@
     #include <__filesystem/operations.h>
 #elif defined (__linux__)
     #include <filesystem>
+    #include <vector>
+    #include <string>
 #endif
 
 

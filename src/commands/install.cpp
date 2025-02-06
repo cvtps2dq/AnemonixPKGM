@@ -126,7 +126,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::filesystem::create_directories( AConf::BSTRAP_PATH + target_path.c_str());
             } else {
                 // Insert copied file path into database
-                Database::writePkgFilesRecord(name, AConf::BSTRAP_PATH + target_path.c_str());
+                Database::writePkgFilesRecord(name, target_path.c_str());
                 copy(file, AConf::BSTRAP_PATH + target_path.c_str(), std::filesystem::copy_options::overwrite_existing);
             }
         }

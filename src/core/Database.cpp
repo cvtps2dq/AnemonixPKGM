@@ -284,6 +284,14 @@ bool Database::removePkg(const std::string &name) {
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
+    if (const auto delete_package_sql = "DELETE FROM broken_packages WHERE name = ?;"; sqlite3_prepare_v2(db, delete_package_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        throw std::runtime_error(sqlite3_errmsg(db));
+    }
+    sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+
     sqlite3_close(db);
 
     return true;

@@ -1,6 +1,6 @@
 # Compiler
 CXX = clang++
-CXXFLAGS = -std=c++23 -Wall -Wextra -g
+CXXFLAGS = -std=c++23 -Wall -Wextra -g 
 
 # OS-specific settings
 OS := $(shell uname)
@@ -9,7 +9,7 @@ ifeq ($(OS), Linux)
     # Linux-specific includes and libraries
     INCLUDES = -I/usr/local/include -I/usr/include -Isrc/core -Isrc/cli -Isrc/commands
     LIBS = -larchive -lsqlite3 -lyaml-cpp -lfmt -lstdc++fs
-    LDFLAGS = -L/usr/local/lib
+    LDFLAGS = -L/usr/local/lib 
 endif
 
 ifeq ($(OS), Darwin)
