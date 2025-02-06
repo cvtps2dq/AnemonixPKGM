@@ -180,8 +180,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
             }
         }
-
+        std::cout << std::endl;
         std::cout << "[ OK ] Copying done.";
+        std::cout << std::endl;
 
         if (std::filesystem::path install_script = package_root / "install.anemonix"; exists(install_script)) {
             if (system(install_script.string().c_str()) != 0) {
