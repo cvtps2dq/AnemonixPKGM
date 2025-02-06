@@ -126,7 +126,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             try {
                 // Insert moved file path into database
                 Database::writePkgFilesRecord(name, target_path.string());
-                std::cout << "moving file: " << file << std::endl;
+                std::cout << "moving file: " << target_path << std::endl;
                 rename(file, full_target_path);
 
             } catch (const std::exception& e) {
