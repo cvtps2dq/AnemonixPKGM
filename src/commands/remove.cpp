@@ -50,8 +50,9 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         const std::vector<std::string> files = Database::fetchFiles(name);
 
         if (files.empty()) {
-            std::cerr << "No files recorded for package '" << name << "'.\n";
-            return false;
+            std::cout << "No files recorded for package '" << name << "'.\n";
+            std::cout << "this is metapackage. proceed with caution!" << std::endl;
+
         }
 
         // Fetch provided packages
