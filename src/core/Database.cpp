@@ -10,6 +10,7 @@
 #include "config.h"
 #include <vector>
 #include <colors.h>
+#include <unordered_set>
 
 bool Database::init() {
     sqlite3* db;
@@ -332,11 +333,21 @@ std::vector<std::pair<std::string, std::vector<std::string>>> Database::fetchAll
         std::cerr << "Failed to open database\n";
         throw std::runtime_error("Failed to open database");
     }
+
     std::vector<std::pair<std::string, std::vector<std::string>>> packages;
+    sqlite3_stmt* stmt;
+
+    // Query all installed packages
+    std::unordered_set<std::string> installed_packages;
+    if (sqlite3_prepare_v2(db, "SELECT name FROM packages;", -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            installed_packages.insert(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+        }
+    }
+    sqlite3_finalize(stmt);
 
     // Get all broken packages
-    sqlite3_stmt* stmt;
-    if (auto select_sql = "SELECT name, missing_deps FROM broken_packages;"; sqlite3_prepare_v2(db, select_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "SELECT name, missing_deps FROM broken_packages;", -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Error retrieving broken packages\n";
         sqlite3_close(db);
         throw std::runtime_error("Failed to prepare query");
@@ -347,17 +358,43 @@ std::vector<std::pair<std::string, std::vector<std::string>>> Database::fetchAll
         std::string missing_deps_str = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
 
         std::vector<std::string> missing_deps;
-        if (!missing_deps_str.empty()) {
-            std::stringstream ss(missing_deps_str);
-            std::string dep;
-            while (std::getline(ss, dep, ',')) {
-                missing_deps.push_back(dep);
+        std::stringstream ss(missing_deps_str);
+        std::string dep;
+        while (std::getline(ss, dep, ',')) {
+            if (installed_packages.find(dep) == installed_packages.end()) {
+                missing_deps.push_back(dep);  // Keep only missing dependencies
             }
         }
 
-        packages.emplace_back(package_name, missing_deps);
+        if (missing_deps.empty()) {
+            // If all dependencies are satisfied, remove the package from the broken list
+            sqlite3_stmt* update_stmt;
+            if (sqlite3_prepare_v2(db, "DELETE FROM broken_packages WHERE name = ?;", -1, &update_stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(update_stmt, 1, package_name.c_str(), -1, SQLITE_STATIC);
+                sqlite3_step(update_stmt);
+            }
+            sqlite3_finalize(update_stmt);
+        } else {
+            // Update the missing dependencies in the database
+            sqlite3_stmt* update_stmt;
+            std::string new_missing_deps;
+            for (const auto& d : missing_deps) {
+                if (!new_missing_deps.empty()) new_missing_deps += ",";
+                new_missing_deps += d;
+            }
+            if (sqlite3_prepare_v2(db, "UPDATE broken_packages SET missing_deps = ? WHERE name = ?;", -1, &update_stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(update_stmt, 1, new_missing_deps.c_str(), -1, SQLITE_STATIC);
+                sqlite3_bind_text(update_stmt, 2, package_name.c_str(), -1, SQLITE_STATIC);
+                sqlite3_step(update_stmt);
+            }
+            sqlite3_finalize(update_stmt);
+
+            packages.emplace_back(package_name, missing_deps);
+        }
     }
+
     sqlite3_finalize(stmt);
+    sqlite3_close(db);
     return packages;
 }
 
@@ -400,38 +437,6 @@ bool Database::auditPkgs(const std::vector<std::pair<std::string,
     sqlite3_close(db);
     return true;
 }
-
-// std::vector<std::string> Database::fetchProvidedPackages(const std::string &name) {
-//     std::vector<std::string> provided_packages;
-//     try {
-//         sqlite3 *db;
-//         sqlite3_stmt *stmt;
-//         const std::string query = "SELECT name FROM packages WHERE description LIKE 'provided by: " + name + "'";
-//
-//         if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
-//             std::cerr << "Failed to open database\n";
-//             throw std::runtime_error("Failed to open database");
-//         }
-//
-//         if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-//             sqlite3_close(db);
-//             throw std::runtime_error("Failed to prepare query");
-//         }
-//
-//         provided_packages.reserve(1);
-//         while (sqlite3_step(stmt) == SQLITE_ROW) {
-//             std::cout << "fetch prov: " << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)) << std::endl;
-//             provided_packages.emplace_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-//         }
-//
-//         sqlite3_finalize(stmt);
-//         sqlite3_close(db);
-//     } catch (const std::exception &e) {
-//         std::cerr << "Database error: " << e.what() << std::endl;
-//     }
-//
-//     return provided_packages;
-// }
 
 std::vector<std::string> Database::fetchProvidedPackages(const std::string &name) {
     sqlite3* db;

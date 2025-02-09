@@ -45,3 +45,4 @@ bool Anemo::audit() {
     Database::auditPkgs(broken_packages);
     return false;
 }
+
