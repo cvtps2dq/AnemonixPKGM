@@ -19,6 +19,15 @@
 
 bool Anemo::remove(const std::string &name, const bool force, const bool update) {
     try {
+
+        if (!force && name == "anemo") {
+            std::cerr << RED << "WAIT! YOU ARE ABOUT TO MAKE SOMETHING REAL NASTY!" << RESET << std::endl;
+            std::cerr << RED << "removing anemo will ABSOLUTELY break your system!" << RESET << std::endl;
+            std::cerr << CYAN << "if you REALLY wish to proceed, "
+                                 "run the command with the --force flag" << RESET << std::endl;
+            exit(EXIT_FAILURE);
+
+        }
         const std::vector<std::string> dependent_packages = Database::checkPkgReliance(name);
 
         if (!dependent_packages.empty() && !force && !update) {
@@ -90,6 +99,10 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
             return false;
         }
 
+        if (force && name == "anemo") {
+            std::cout << YELLOW << "anemo performing harakiri." << RESET << std::endl;
+        }
+
         // Remove files
         for (const auto& file : files) {
             std::filesystem::remove(file);
@@ -114,6 +127,11 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         }
 
         std::cout << "[OK] Successfully removed " << name << "\n";
+
+        if (force && name == "anemo") {
+            std::cout << YELLOW << "bailing out. good luck :)" << RESET << std::endl;
+        }
+
         return true;
 
     } catch (const std::exception& e) {

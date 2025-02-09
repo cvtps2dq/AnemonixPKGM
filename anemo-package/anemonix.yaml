@@ -1,0 +1,4 @@
+name: anemo
+version: 1.0
+arch: x86_64
+description: anemo package manager

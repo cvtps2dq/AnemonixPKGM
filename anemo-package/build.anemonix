@@ -1,0 +1,7 @@
+#!/bin/bash
+# This script installs the package contents to the system.
+
+echo "installing anemo"
+
+# Copy files to their destination
+cp -r package/* /

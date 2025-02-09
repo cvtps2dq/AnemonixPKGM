@@ -361,7 +361,7 @@ std::vector<std::pair<std::string, std::vector<std::string>>> Database::fetchAll
         std::stringstream ss(missing_deps_str);
         std::string dep;
         while (std::getline(ss, dep, ',')) {
-            if (installed_packages.find(dep) == installed_packages.end()) {
+            if (!installed_packages.contains(dep)) {
                 missing_deps.push_back(dep);  // Keep only missing dependencies
             }
         }
@@ -447,12 +447,11 @@ std::vector<std::string> Database::fetchProvidedPackages(const std::string &name
     sqlite3_stmt* stmt;
     std::vector<std::string> provided_packages;
 
-    const char* select_provides_sql = "SELECT name, version FROM packages WHERE description = ?;";
-    if (sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (const auto select_provides_sql = "SELECT name, version FROM packages WHERE description = ?;"; sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
         throw std::runtime_error(sqlite3_errmsg(db));
     }
 
-    std::string provided_by_text = "provided by: " + name;
+    const std::string provided_by_text = "provided by: " + name;
     sqlite3_bind_text(stmt, 1, provided_by_text.c_str(), -1, SQLITE_STATIC);
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -476,8 +475,7 @@ std::string Database::fetchDescription(const std::string& name) {
     sqlite3_stmt* stmt;
     std::vector<std::string> provided_packages;
 
-    const char* select_provides_sql = "SELECT description FROM packages WHERE name LIKE ?;";
-    if (sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (const auto select_provides_sql = "SELECT description FROM packages WHERE name LIKE ?;"; sqlite3_prepare_v2(db, select_provides_sql, -1, &stmt, nullptr) != SQLITE_OK) {
         throw std::runtime_error(sqlite3_errmsg(db));
     }
     std::string provided_desc;
