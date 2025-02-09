@@ -192,9 +192,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 spin_index = (spin_index + 1) % 4;
             }
             try {
-                preserveOwnership(file, full_target_path);
-                preserveACLs(file, full_target_path);
-                preserveExtendedAttributes(file, full_target_path);
+                //preserveOwnership(file, full_target_path);
+                //preserveACLs(file, full_target_path);
+                //preserveExtendedAttributes(file, full_target_path);
                 if (!is_directory(file)) {
                     Database::writePkgFilesRecord(name, full_target_path);
                 }
