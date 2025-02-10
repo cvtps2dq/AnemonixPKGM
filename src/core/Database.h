@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <yaml-cpp/node/node.h>
 
 
 class Database {
@@ -38,6 +39,8 @@ class Database {
     static std::vector<std::string> checkPkgReliance(const std::string& name);
 
     static std::string fetchDescription(const std::string& name);
+
+    static void writePkgFilesBatch(const std::string & name, const std::vector<std::string> & vector);
 };
 
 

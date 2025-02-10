@@ -183,7 +183,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         }
         // Run build script
         std::filesystem::path package_dir = package_root / "package";
-        const char spin_chars[] = {'|', '/', '-', '\\'};
+        constexpr char spin_chars[] = {'|', '/', '-', '\\'};
         int spin_index = 0;
         try {
             std::filesystem::copy(package_dir, AConf::BSTRAP_PATH + "/",
@@ -194,26 +194,26 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             std::cerr << YELLOW << "warn :: write skip, file exists" << RESET << "\n";
         }
         int ix = 0;
+        std::vector<std::string> files_to_register;
+
+        // Collect files first
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
-            std::filesystem::path target_path =  file.path().lexically_relative(package_dir);
+            std::filesystem::path target_path = file.path().lexically_relative(package_dir);
             std::filesystem::path full_target_path = AConf::BSTRAP_PATH + target_path.string();
+
             if (ix % 4 == 0) {
-                std::cout << "\r[ " << spin_chars[spin_index] << " ] setting attrs";
+                std::cout << "\r[ " << spin_chars[spin_index] << " ] collecting files";
                 spin_index = (spin_index + 1) % 4;
             }
-            try {
-                //preserveOwnership(file, full_target_path);
-                //preserveACLs(file, full_target_path);
-                //preserveExtendedAttributes(file, full_target_path);
-                if (!is_directory(file)) {
-                    Database::writePkgFilesRecord(name, full_target_path);
-                }
 
-            } catch (const std::exception& e) {
-                std::cerr << "Error copying " << file.path() << " -> " << full_target_path << ": " << e.what() << std::endl;
+            if (!is_directory(file)) {
+                files_to_register.push_back(full_target_path);
             }
             ix++;
         }
+
+        // Batch insert files into the database
+        Database::writePkgFilesBatch(name, files_to_register);
         std::cout << std::endl;
         std::cout << "[ OK ] Copying done.";
         std::cout << std::endl;

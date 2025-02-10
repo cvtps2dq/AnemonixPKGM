@@ -489,3 +489,56 @@ std::string Database::fetchDescription(const std::string& name) {
 
     return provided_desc;
 }
+
+
+void Database::writePkgFilesBatch(const std::string& package_name, const std::vector<std::string>& files) {
+    constexpr char spin_chars[] = {'|', '/', '-', '\\'};
+    int spin_index = 0;
+    sqlite3* db;
+    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+        throw std::runtime_error("Failed to open database");
+    }
+
+    char* errMsg = nullptr;
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, &errMsg) != SQLITE_OK) {
+        std::cerr << "Failed to start transaction: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        return;
+    }
+
+    sqlite3_stmt* stmt;
+    const char* sql = "INSERT INTO files (package_name, file_path) VALUES (?, ?);";
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_close(db);
+        return;
+    }
+    int ix = 0;
+    for (const auto& file : files) {
+        sqlite3_bind_text(stmt, 1, package_name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, file.c_str(), -1, SQLITE_STATIC);
+        if (ix % 4 == 0) {
+            std::cout << "\r[ " << spin_chars[spin_index] << " ] collecting files";
+            spin_index = (spin_index + 1) % 4;
+        }
+
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            std::cerr << "Failed to insert file: " << file << " -> " << sqlite3_errmsg(db) << std::endl;
+        }
+
+        sqlite3_reset(stmt); // Reset statement for next iteration
+        ix++;
+    }
+
+    sqlite3_finalize(stmt);
+
+    if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errMsg) != SQLITE_OK) {
+        std::cerr << "Failed to commit transaction: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
+    }
+
+    sqlite3_close(db);
+}
+
