@@ -67,8 +67,6 @@ bool Anemo::remove(const std::string &name, const bool force, const bool update)
         // Fetch provided packages
         const std::vector<std::string> provided_packages = Database::fetchProvidedPackages(name);
 
-
-
         // Print metadata & files
         std::cout << "\n! Package Removal Confirmation !\n";
         std::cout << "------------------------------------\n";

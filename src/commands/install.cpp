@@ -93,15 +93,25 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
         // Parse 'provides'
         std::vector<std::pair<std::string, std::string>> provided_items;
+        std::string parent_version = config["version"] ? config["version"].as<std::string>() : "";
+
         if (config["provides"]) {
             for (const auto& item : config["provides"]) {
                 auto provides_entry = item.as<std::string>();
                 size_t pos = provides_entry.find('=');
+
+                std::string prov_name;
+                std::string prov_version;
+
                 if (pos != std::string::npos) {
-                    std::string prov_name = provides_entry.substr(0, pos);
-                    std::string prov_version = provides_entry.substr(pos + 1);
-                    provided_items.emplace_back(prov_name, prov_version);
+                    prov_name = provides_entry.substr(0, pos);
+                    prov_version = provides_entry.substr(pos + 1);
+                } else {
+                    prov_name = provides_entry;
+                    prov_version = parent_version;  // Use parent package version
                 }
+
+                provided_items.emplace_back(prov_name, prov_version);
             }
         }
 
