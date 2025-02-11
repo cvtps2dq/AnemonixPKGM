@@ -491,7 +491,7 @@ std::string Database::fetchDescription(const std::string& name) {
 }
 
 
-void Database::writePkgFilesBatch(const std::string& package_name, const std::vector<std::string>& files) {
+void Database::writePkgFilesBatch(const std::string& name, const std::vector<std::string>& vector) {
     constexpr char spin_chars[] = {'|', '/', '-', '\\'};
     int spin_index = 0;
     sqlite3* db;
@@ -508,19 +508,18 @@ void Database::writePkgFilesBatch(const std::string& package_name, const std::ve
     }
 
     sqlite3_stmt* stmt;
-    const char* sql = "INSERT INTO files (package_name, file_path) VALUES (?, ?);";
 
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    if (const auto sql = "INSERT INTO files (package_name, file_path) VALUES (?, ?);"; sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
         sqlite3_close(db);
         return;
     }
     int ix = 0;
-    for (const auto& file : files) {
-        sqlite3_bind_text(stmt, 1, package_name.c_str(), -1, SQLITE_STATIC);
+    for (const auto& file : vector) {
+        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(stmt, 2, file.c_str(), -1, SQLITE_STATIC);
         if (ix % 4 == 0) {
-            std::cout << "\r[ " << spin_chars[spin_index] << " ] collecting files";
+            std::cout << "\r[ " << spin_chars[spin_index] << " ] registering files";
             spin_index = (spin_index + 1) % 4;
         }
 
