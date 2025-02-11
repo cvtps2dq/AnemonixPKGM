@@ -190,7 +190,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
                 std::filesystem::copy_options::recursive |
                     std::filesystem::copy_options::copy_symlinks |
                     std::filesystem::copy_options::update_existing);
-        } catch (const std::exception &e) {
+        } catch ([[maybe_unused]] const std::exception &e) {
             std::cerr << YELLOW << "warn :: write skip, file exists" << RESET << "\n";
         }
         int ix = 0;
@@ -226,13 +226,12 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
         // Insert package into DB
         if(!Database::insertPkg(name, version, arch, deps_str, description)){
-            throw::std::runtime_error("failed to insert pkg into the database!");
+            throw std::runtime_error("failed to insert pkg into the database!");
         }
 
         // Insert provided items into the database
         for (const auto& [prov_name, prov_version] : provided_items) {
-            std::string desc = "provided by: " + name;
-            if (!Database::insertPkg(prov_name, prov_version, arch, "", desc)) {
+            if (std::string desc = "provided by: " + name; !Database::insertPkg(prov_name, prov_version, arch, "", desc)) {
                 std::cerr << RED << "Failed to insert provided package: " << prov_name << RESET << "\n";
             } else {
                 std::cout << GREEN << "-> Provided package " << prov_name << "=" << prov_version << " registered successfully!\n" << RESET;
@@ -247,7 +246,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
         try{
 
             remove_all(package_root);
-        } catch(std::exception e){
+        } catch(std::exception& e){
             std::cout << "failed to remove package root. " << e.what() << std::endl;
         }
         return true;

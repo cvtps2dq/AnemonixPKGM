@@ -541,3 +541,32 @@ void Database::writePkgFilesBatch(const std::string& name, const std::vector<std
     sqlite3_close(db);
 }
 
+int Database::countPackages() {
+    sqlite3* db;
+    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+        std::cerr << "[Error] Failed to open database: " << sqlite3_errmsg(db) << std::endl;
+        return -1;
+    }
+
+    const char* sql = "SELECT COUNT(*) FROM packages;";
+    sqlite3_stmt* stmt;
+    int package_count = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        std::cerr << "[Error] Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_close(db);
+        return -1;
+    }
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        package_count = sqlite3_column_int(stmt, 0);
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    //std::cout << package_count << " packages installed." << std::endl;
+    return package_count;
+}
+
+

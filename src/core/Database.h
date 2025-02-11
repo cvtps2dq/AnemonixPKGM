@@ -41,6 +41,8 @@ class Database {
     static std::string fetchDescription(const std::string& name);
 
     static void writePkgFilesBatch(const std::string & name, const std::vector<std::string> & vector);
+
+    static int countPackages();
 };
 
 

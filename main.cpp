@@ -82,7 +82,19 @@ int main(const int argc, char* argv[]) {
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
         }
         Anemo::list();
-    } else {
+    }
+    else if (command == "count") {
+        if (bootstrap) {
+            if (bootstrap_path.empty()) {
+                std::cerr << "err: Missing bootstrap path\n";
+                return 1;
+            }
+            AConf::ANEMO_ROOT = bootstrap_path + AConf::ANEMO_ROOT;
+            AConf::BSTRAP_PATH = bootstrap_path;
+            AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
+        }
+        Anemo::count();
+    }else {
         std::cerr << "Unknown command\n";
         Anemo::showHelp();
         return 1;

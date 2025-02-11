@@ -19,6 +19,7 @@
     #include <string>
 #endif
 
+#include <Database.h>
 #include <random>
 
 #include "config.h"
@@ -38,6 +39,11 @@ bool Anemo::validate(const std::filesystem::path& package_root) {
         }
     }
     return true;
+}
+
+int Anemo::count() {
+    std::cout << Database::countPackages();
+    return 0;
 }
 
 void Anemo::showHelp() {

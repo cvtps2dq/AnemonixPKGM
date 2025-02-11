@@ -23,10 +23,10 @@ public:
     static bool update();
     static bool upgrade();
     static bool validate(const std::filesystem::path& package_root);
-
+    static int count();
     static void list();
 };
 
 
 
-#endif //ANEMO_H
+#endif ANEMO_H
