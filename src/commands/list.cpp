@@ -26,3 +26,13 @@ void Anemo::list() {
     }
     std::cout << "+--------------------------------+------------+-------+\n";
 }
+
+
+void Anemo::listParse() {
+
+    std::vector<std::tuple<std::string, std::string, std::string>> packages = Database::fetchAllPkgs();
+
+    for (const auto& [name, version, arch] : packages) {
+        std::cout << name << " ||| " << version << " ||| " << arch << "\n";
+    }
+}

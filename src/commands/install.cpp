@@ -229,7 +229,7 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             throw std::runtime_error("failed to insert pkg into the database!");
         }
 
-        // Insert provided items into the database
+        // Insert provided items into the databases
         for (const auto& [prov_name, prov_version] : provided_items) {
             if (std::string desc = "provided by: " + name; !Database::insertPkg(prov_name, prov_version, arch, "", desc)) {
                 std::cerr << RED << "Failed to insert provided package: " << prov_name << RESET << "\n";

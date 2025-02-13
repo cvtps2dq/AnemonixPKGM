@@ -491,7 +491,7 @@ std::string Database::fetchDescription(const std::string& name) {
 }
 
 
-void Database::writePkgFilesBatch(const std::string& name, const std::vector<std::string>& vector) {
+void Database::2writePkgFilesBatch(const std::string& name, const std::vector<std::string>& vector) {
     constexpr char spin_chars[] = {'|', '/', '-', '\\'};
     int spin_index = 0;
     sqlite3* db;

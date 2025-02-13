@@ -25,8 +25,8 @@ public:
     static bool validate(const std::filesystem::path& package_root);
     static int count();
     static void list();
+
+    static void listParse();
 };
-
-
 
 #endif ANEMO_H
