@@ -27,35 +27,35 @@
 
 #include <sys/stat.h>
 
-// void preserveOwnership(const std::filesystem::path& source, const std::filesystem::path& destination) {
-//     struct stat file_stat;
-//     if (stat(source.c_str(), &file_stat) == 0) {
-//         chown(destination.c_str(), file_stat.st_uid, file_stat.st_gid);
-//     }
-// }
+void preserveOwnership(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    struct stat file_stat;
+    if (stat(source.c_str(), &file_stat) == 0) {
+        chown(destination.c_str(), file_stat.st_uid, file_stat.st_gid);
+    }
+}
 
-// void preserveACLs(const std::filesystem::path& source, const std::filesystem::path& destination) {
-//     acl_t acl = acl_get_file(source.c_str(), ACL_TYPE_ACCESS);
-//     if (acl) {
-//         acl_set_file(destination.c_str(), ACL_TYPE_ACCESS, acl);
-//         acl_free(acl);
-//     }
-// }
+void preserveACLs(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    acl_t acl = acl_get_file(source.c_str(), ACL_TYPE_ACCESS);
+    if (acl) {
+        acl_set_file(destination.c_str(), ACL_TYPE_ACCESS, acl);
+        acl_free(acl);
+    }
+}
 
-// void preserveExtendedAttributes(const std::filesystem::path& source, const std::filesystem::path& destination) {
-//     char attr_list[1024];
-//     ssize_t list_size = listxattr(source.c_str(), attr_list, sizeof(attr_list));
-//
-//     if (list_size > 0) {
-//         for (ssize_t i = 0; i < list_size; i += strlen(&attr_list[i]) + 1) {
-//             char value[1024];
-//             ssize_t value_size = getxattr(source.c_str(), &attr_list[i], value, sizeof(value));
-//             if (value_size > 0) {
-//                 setxattr(destination.c_str(), &attr_list[i], value, value_size, 0);
-//             }
-//         }
-//     }
-// }
+void preserveExtendedAttributes(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    char attr_list[1024];
+    ssize_t list_size = listxattr(source.c_str(), attr_list, sizeof(attr_list));
+
+    if (list_size > 0) {
+        for (ssize_t i = 0; i < list_size; i += strlen(&attr_list[i]) + 1) {
+            char value[1024];
+            ssize_t value_size = getxattr(source.c_str(), &attr_list[i], value, sizeof(value));
+            if (value_size > 0) {
+                setxattr(destination.c_str(), &attr_list[i], value, value_size, 0);
+            }
+        }
+    }
+}
 
 void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
     try { if (!exists(destination))rename(source, destination);}
@@ -83,6 +83,7 @@ int compareVersions(const std::string& v1, const std::string& v2) {
 }
 
 bool installPkg(const std::filesystem::path &package_root, bool force, bool reinstall) {
+    std::vector<std::string> files_to_register;
     try {
         std::string description = "none";
         YAML::Node config = YAML::LoadFile(package_root / "anemonix.yaml");
@@ -194,7 +195,6 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
             std::cerr << YELLOW << "warn :: write skip, file exists" << RESET << "\n";
         }
         int ix = 0;
-        std::vector<std::string> files_to_register;
 
         // Collect files first
         for (const auto& file : std::filesystem::recursive_directory_iterator(package_dir)) {
@@ -208,6 +208,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
             if (!is_directory(file)) {
                 files_to_register.push_back(full_target_path);
+                preserveOwnership(target_path, full_target_path);
+                preserveACLs(target_path, full_target_path);
+                preserveExtendedAttributes(full_target_path, full_target_path);
             }
             ix++;
         }
@@ -253,6 +256,15 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
     } catch (const std::exception& e) {
         std::cerr << "Installation failed: " << e.what() << "\n";
+        for (const auto& file : files_to_register) {
+            try {
+                std::filesystem::remove_all(file);
+            } catch(std::exception& ex) {
+                std::cerr << RED << "Failed to remove package file: " << file << RESET << "\n";
+                std::cerr << CYAN << "manual removal needed " << ex.what() << RESET << std::endl;
+            }
+            
+        }
         return false;
     }
 }
