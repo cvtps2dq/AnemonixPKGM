@@ -208,9 +208,9 @@ bool installPkg(const std::filesystem::path &package_root, bool force, bool rein
 
             if (!is_directory(file)) {
                 files_to_register.push_back(full_target_path);
-                preserveOwnership(target_path, full_target_path);
-                preserveACLs(target_path, full_target_path);
-                preserveExtendedAttributes(full_target_path, full_target_path);
+                preserveOwnership(full_target_path, AConf::BSTRAP_PATH + "/");
+                preserveACLs(full_target_path, AConf::BSTRAP_PATH + "/");
+                preserveExtendedAttributes(full_target_path, AConf::BSTRAP_PATH + "/");
             }
             ix++;
         }
