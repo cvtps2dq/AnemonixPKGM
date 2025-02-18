@@ -4,6 +4,7 @@
 
 #ifndef ANEMO_H
 #define ANEMO_H
+
 #if defined(__APPLE__) && defined(__MACH__)
     #include <__filesystem/operations.h>
 #elif defined (__linux__)
@@ -29,4 +30,4 @@ public:
     static void listParse();
 };
 
-#endif ANEMO_H
+#endif
