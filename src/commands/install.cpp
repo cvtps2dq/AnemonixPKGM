@@ -62,7 +62,7 @@ int compareVersions(const std::string& v1, const std::string& v2) {
 }
 
 bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool reinstall) {
-    std::cout << "Anemo::install() called" << std::endl;
+    //std::cout << "Anemo::install() called" << std::endl;
     if (!Utilities::isSu()) {
         std::cerr << RED << "err: requires root privileges :( \n" << RESET;
         return false;
@@ -76,7 +76,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     const std::string& package_path = arguments[0];  // First non-flag argument is the package file
 
     std::vector<std::pair<std::string, std::string>> provided_items;
-    std::cout << "making tempdir" << std::endl;
+    //std::cout << "making tempdir" << std::endl;
     // Create temporary directory
     std::string temp_dir = "/tmp/anemoXXXXXX";
     std::filesystem::path temp_path(temp_dir);
@@ -85,20 +85,20 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
         return false;
     }
     std::string temp_dir_str(temp_dir);
-    std::cout << "first pass: extracting metadata" << std::endl;
+    //std::cout << "first pass: extracting metadata" << std::endl;
     // First pass: Extract metadata and scripts
     std::unordered_set<std::string> metadata_files;
     if (!Utilities::extractMetadataAndScripts(package_path, temp_dir_str, metadata_files, arguments[0])) {
         std::filesystem::remove_all(temp_path);
         return false;
     }
-    std::cout << "verify metadata " << std::endl;
+    //std::cout << "verify metadata " << std::endl;
     // Verify metadata exists
     std::string metadata_path = temp_dir_str + "/";
     std::filesystem::path root(metadata_path);
-    std::cout << "verify root " << root << std::endl;
-    std::cout << "verify metadata path" << metadata_path << std::endl;
-    system(("ls -lah " + root.string()).c_str());
+    //std::cout << "verify root " << root << std::endl;
+    //std::cout << "verify metadata path" << metadata_path << std::endl;
+    //system(("ls -lah " + root.string()).c_str());
     if (access((root / "anemonix.yaml").c_str(), F_OK) != 0) {
         std::cerr << "Missing required metadata file (anemonix.yaml)" << std::endl;
         std::filesystem::remove_all(temp_path);
@@ -200,7 +200,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
         remove_all(temp_path);
         return false;
     }
-    std::cout << "second pass: extract remaining" << std::endl;
+    //std::cout << "second pass: extract remaining" << std::endl;
     std::vector<std::string> installed_files;
     if (!Utilities::extractRemainingFiles(package_path,  metadata_files, installed_files)) {
         remove_all(temp_path);
