@@ -1,0 +1,2 @@
+1.0:
+ revamped install routine. now Anemo relies on libarchive to unpack files, dropping fs::copy().

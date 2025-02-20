@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 
 tar -czvf test-package.apkg test-package
 tar -czvf dependency-a.apkg dependency-a
