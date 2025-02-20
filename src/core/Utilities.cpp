@@ -165,7 +165,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         std::string filename = archive_entry_pathname(entry);
-        std::cout << filename << std::endl;
 
         if (exclude_files.contains(filename)) {
             archive_read_data_skip(a);
@@ -185,7 +184,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         if (!filename.starts_with("package/")) {
-            std::cout << "skipping " << filename << std::endl;
             archive_read_data_skip(a);
             continue;
         }
@@ -198,7 +196,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             extracted_file = filename.substr(root.length());
         } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
-            std::cerr << "Extracting file: " << extracted_file.string() << std::endl;
             std::cerr << "root path: " << root << std::endl;
             std::cerr << "Failed to determine the path of file: " << filename << std::endl;
             continue;
@@ -211,6 +208,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
             try {
+                // note: check bootstrap
                 fullpath = base_path / extracted_file.string().substr(0, std::string::npos);
             } catch (const std::exception& e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
@@ -236,20 +234,8 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             break;
         }
 
-        std::cout << filename << std::endl;
-        if (fullpath.string().contains("systemd-machine-id-setup")) {
-            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
-        }
-
         if (!std::filesystem::exists(fullpath)) {
             std::cerr << "File vanished: " << fullpath << std::endl;
-        }
-
-        if (filename.contains("systemd-machine-id-setup")) {
-            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
-            if (std::filesystem::exists(fullpath)) {
-                std::cerr << "ITS ON A DISK!!!!! " << fullpath << std::endl;
-            }
         }
 
         // Copy data and track successful extraction
@@ -299,16 +285,10 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
                 std::cerr << "Failed to create hard link: " << link_path << " → " << full_target << "\n";
                 std::cerr << "Exception: " << e.what() << std::endl;
             }
-        } else {
-            std::cerr << "Hard-link target does not exist: " << full_target << "\n";
         }
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
-    //system("ls /usr/bin");
-    system("sync");
-    system("find / -name systemd-machine-id-setup");
-
     archive_read_close(a);
     archive_read_free(a);
     archive_write_close(ext);
