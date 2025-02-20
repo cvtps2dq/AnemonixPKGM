@@ -194,10 +194,17 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::filesystem::path extracted_file;
         try {
-            extracted_file = std::filesystem::path(filename).lexically_relative("package");
-            if (extracted_file.string().empty() || extracted_file == ".") {
-                extracted_file = filename.substr(root.length());
+            std::string sanitized = filename;
+
+            // Remove "package/" or "./package/" prefix if present
+            if (sanitized.starts_with("package/")) {
+                sanitized = sanitized.substr(8); // Cut "package/"
+            } else if (sanitized.starts_with("./package/")) {
+                sanitized = sanitized.substr(10); // Cut "./package/"
             }
+
+            // Ensure it's a valid path
+            extracted_file = std::filesystem::path(sanitized).lexically_normal();
         } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
             std::cerr << "root path: " << root << std::endl;
