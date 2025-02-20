@@ -166,6 +166,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::string filename = archive_entry_pathname(entry);
 
+
         if (exclude_files.contains(filename)) {
             archive_read_data_skip(a);
             continue;
@@ -220,13 +221,25 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         fullpath = fullpath.lexically_normal();
 
+        std::filesystem::path sanitized_path = fullpath;
+
+        // Remove "package/" prefix if present
+        std::string sanitized_str = sanitized_path.string();
+        if (sanitized_str.starts_with("/package/")) {
+            sanitized_str = sanitized_str.substr(8);  // Remove "/package/"
+            sanitized_path = std::filesystem::path(sanitized_str);
+        } else if (sanitized_str.starts_with("./package/")) {
+            sanitized_str = sanitized_str.substr(9);  // Remove "./package/"
+            sanitized_path = std::filesystem::path(sanitized_str);
+        }
+
         if (archive_entry_hardlink(entry)) {
             std::string target = archive_entry_hardlink(entry);
             hard_links.emplace_back(fullpath, target);
             continue;
         }
 
-        archive_entry_set_pathname(entry, fullpath.c_str());
+        archive_entry_set_pathname(entry, sanitized_path.c_str());
 
         r = archive_write_header(ext, entry);
         if (r != ARCHIVE_OK) {
@@ -255,17 +268,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         if (extraction_success) {
-            std::filesystem::path sanitized_path = fullpath;
-
-            // Remove "package/" prefix if present
-            std::string sanitized_str = sanitized_path.string();
-            if (sanitized_str.starts_with("/package/")) {
-                sanitized_str = sanitized_str.substr(8);  // Remove "/package/"
-                sanitized_path = std::filesystem::path(sanitized_str);
-            } else if (sanitized_str.starts_with("./package/")) {
-                sanitized_str = sanitized_str.substr(9);  // Remove "./package/"
-                sanitized_path = std::filesystem::path(sanitized_str);
-            }
 
             if (AConf::BSTRAP_PATH.empty()) {
                 if (!is_directory(sanitized_path)) {
