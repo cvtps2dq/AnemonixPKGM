@@ -22,7 +22,8 @@ class Utilities {
 
         static bool untarPKG(const std::string &package_path, const std::string &extract_to, bool reinstall, bool force);
         static std::filesystem::path findPKGRoot(const std::filesystem::path& temp_dir);
-        static bool extractMetadataAndScripts(const std::string &package_path, const std::string &temp_dir, std::unordered_set<std::string> &metadata_files);
+        static bool extractMetadataAndScripts(const std::string &package_path, const std::string &temp_dir, std::unordered_set<std::string> &metadata_files, const std::
+                                              string &name);
         static bool extractRemainingFiles(const std::string &package_path, const std::unordered_set<std::string> &exclude_files, std::vector<std::string> &
                                           installed_files);
         static bool isMetadataOrScript(const std::string &entry_name);
