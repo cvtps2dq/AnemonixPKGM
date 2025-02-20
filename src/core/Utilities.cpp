@@ -94,16 +94,6 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
 
         std::string filename = archive_entry_pathname(entry);
 
-        if (ix == 0) {
-            // Ensure root_path is actually a directory
-            root_path = filename;
-            std::cout << filename << std::endl;
-            if (!root_path.ends_with('/')) {
-                root_path += '/';
-            }
-        }
-        ix++;
-
         std::string relative_path;
         if (filename.starts_with(root_path) && filename.length() > root_path.length()) {
             relative_path = filename.substr(root_path.length());
