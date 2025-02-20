@@ -92,7 +92,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
 
         std::string filename = archive_entry_pathname(entry);
         std::cout << filename << std::endl;
-        if (!isMetadataOrScript(filename)) {
+        if (!isMetadataOrScript(std::filesystem::path(filename))) {
             archive_read_data_skip(a);
             continue;
         }
