@@ -264,7 +264,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
             file_count++;
         }
-
+        std::cout << fullpath << std::endl;
         if (fullpath.string().contains("systemd-machine-id-setup")) {
             std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
         }
