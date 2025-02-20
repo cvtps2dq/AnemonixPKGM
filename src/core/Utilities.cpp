@@ -211,7 +211,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
             try {
-                fullpath = base_path / extracted_file.string().substr(1, std::string::npos);
+                fullpath = base_path / extracted_file.string().substr(0, std::string::npos);
             } catch (const std::exception& e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
                 std::cerr << "Failed to determine fullpath for: " << filename << std::endl;
