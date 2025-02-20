@@ -1,4 +1,5 @@
 #include <Anemo.h>
+#include <colors.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -51,7 +52,7 @@ int main(const int argc, char* argv[]) {
     } else if (command == "install" && !arguments.empty()) {
         for (const auto& pkg : arguments) {
             if (!Anemo::install({pkg}, force, reinstall)) {
-                std::cerr << "Failed to install: " << pkg << "\n";
+                std::cerr << RED << "Failed to install: " << pkg << RESET << "\n";
             }
         }
     } else if (command == "remove" && !arguments.empty()) {
