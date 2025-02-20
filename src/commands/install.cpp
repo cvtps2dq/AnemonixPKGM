@@ -73,7 +73,6 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     // Create temporary directory
     std::string temp_dir = "/tmp/anemoXXXXXX";
     std::filesystem::path temp_path(temp_dir);
-    std::cout << temp_path << std::endl;
     if (!mkdtemp(temp_dir.data())) {
         std::cerr << "Failed to create temporary directory" << std::endl;
         return false;
@@ -90,7 +89,6 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     // Verify metadata exists
     std::string metadata_path = temp_dir_str + "/";
     std::filesystem::path root(metadata_path);
-    system(("ls -l " + root.string()).c_str());
     if (access((root / "anemonix.yaml").c_str(), F_OK) != 0) {
         std::cerr << "Missing required metadata file (anemonix.yaml)" << std::endl;
         std::filesystem::remove_all(temp_path);
