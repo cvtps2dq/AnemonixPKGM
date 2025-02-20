@@ -91,7 +91,6 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         std::string filename = archive_entry_pathname(entry);
-        std::cout << filename << std::endl;
         if (!isMetadataOrScript(std::filesystem::path(filename).lexically_normal())) {
             archive_read_data_skip(a);
             continue;
@@ -303,7 +302,6 @@ bool Utilities::isMetadataOrScript(const std::string& entry_name) {
     };
 
     return std::ranges::any_of(targets, [entry_name](const char* target) {
-        std::cout << "comparing: " << entry_name <<" and " << target << std::endl;
         return strcmp(entry_name.c_str(), target) == 0;
     });
 }
