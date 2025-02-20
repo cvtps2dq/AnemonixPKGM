@@ -262,7 +262,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             file_count++;
         }
 
-        archive_write_finish_entry(ext);
+        //archive_write_finish_entry(ext);
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
