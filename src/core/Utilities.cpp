@@ -14,9 +14,11 @@
 #if defined(__APPLE__) && defined(__MACH__)
     #include <__filesystem/directory_iterator.h>
     #include <__filesystem/operations.h>
+    #include <__algorithm/ranges_any_of.h>
 #elif defined (__linux__)
     #include <filesystem>
     #include <vector>
+    #include <algorithm/ranges_any_of.h>
 #endif
 
 #include <Database.h>
@@ -25,7 +27,6 @@
 #include <random>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <__algorithm/ranges_any_of.h>
 #include <string>
 #include <unordered_set>
 #include <cstring>

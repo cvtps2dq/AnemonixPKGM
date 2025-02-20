@@ -8,6 +8,8 @@
     #include <__filesystem/directory_iterator.h>
 #elif defined (__linux__)
     #include <filesystem>
+    #include <vector>
+
 #endif
 #include <unordered_set>
 
