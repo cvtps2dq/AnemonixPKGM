@@ -290,7 +290,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
     system("ls /usr/bin");
-    system("which systemd-machine-id-setup");
+    system("sync");
     system("find / -name systemd-machine-id-setup");
 
     archive_read_close(a);
