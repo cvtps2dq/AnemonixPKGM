@@ -184,7 +184,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             continue;
         }
 
-        if (!filename.starts_with(root + "package/")) {
+        if (!filename.starts_with("package/")) {
             std::cout << "skipping " << filename << std::endl;
             archive_read_data_skip(a);
             continue;
