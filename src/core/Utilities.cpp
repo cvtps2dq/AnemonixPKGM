@@ -200,6 +200,11 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         //std::cout << "BSTRAP_PATH: " << base_path << std::endl;
 
         // Strip root prefix correctly without forcing absolute paths
+        if (filename.empty()) {
+            file_count++;
+            continue;
+        }
+
         std::filesystem::path extracted_file;
         try {extracted_file = filename.substr(root.length() + 7);}
         catch (const std::exception& e) {
