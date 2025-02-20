@@ -24,8 +24,14 @@
 #include <sys/stat.h>
 
 std::string removeExtension(const std::string& filename) {
-    if (size_t last_dot = filename.rfind(".apkg"); last_dot != std::string::npos) {
-        return filename.substr(0, last_dot);
+    try{
+        if (size_t last_dot = filename.rfind(".apkg"); last_dot != std::string::npos) {
+            return filename.substr(0, last_dot);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << "called from removeExtension" << std::endl;
+        std::cerr << filename << std::endl;
     }
     return filename;  // Return original if no `.apkg`
 }
