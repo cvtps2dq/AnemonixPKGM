@@ -198,6 +198,8 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             extracted_file = filename.substr(root.length() + 7);
         } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
+            std::cerr << "Extracting file: " << extracted_file.string() << std::endl;
+            std::cerr << "root path: " << root << std::endl;
             std::cerr << "Failed to determine the path of file: " << filename << std::endl;
             continue;
         }
