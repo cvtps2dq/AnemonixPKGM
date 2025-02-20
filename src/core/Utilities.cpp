@@ -266,6 +266,9 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         archive_write_finish_entry(ext);
+        if (!std::filesystem::exists(fullpath)) {
+            std::cerr << "File vanished: " << fullpath << std::endl;
+        }
     }
 
     // Second pass: Process hard links
@@ -295,6 +298,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
     return status == ARCHIVE_OK;
 }
+
 
 bool Utilities::isMetadataOrScript(const std::string& entry_name) {
     const char* targets[] = {
