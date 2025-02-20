@@ -134,7 +134,6 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
     archive_read_free(a);
     archive_write_close(ext);
     archive_write_free(ext);
-    system(("ls -l " + temp_dir).c_str());
     return status == ARCHIVE_OK;
 }
 
