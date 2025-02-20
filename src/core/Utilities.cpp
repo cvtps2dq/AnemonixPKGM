@@ -232,6 +232,23 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             break;
         }
 
+        std::cout << fullpath << std::endl;
+        if (fullpath.string().contains("systemd-machine-id-setup")) {
+            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
+        }
+
+        archive_write_finish_entry(ext);
+        if (!std::filesystem::exists(fullpath)) {
+            std::cerr << "File vanished: " << fullpath << std::endl;
+        }
+
+        if (filename.contains("systemd-machine-id-setup")) {
+            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
+            if (std::filesystem::exists(fullpath)) {
+                std::cerr << "ITS ON A DISK!!!!! " << fullpath << std::endl;
+            }
+        }
+
         // Copy data and track successful extraction
         const void* buff;
         size_t size;
@@ -263,22 +280,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             }
 
             file_count++;
-        }
-        std::cout << fullpath << std::endl;
-        if (fullpath.string().contains("systemd-machine-id-setup")) {
-            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
-        }
-
-        archive_write_finish_entry(ext);
-        if (!std::filesystem::exists(fullpath)) {
-            std::cerr << "File vanished: " << fullpath << std::endl;
-        }
-
-        if (filename.contains("systemd-machine-id-setup")) {
-            std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
-            if (std::filesystem::exists(fullpath)) {
-                std::cerr << "ITS ON A DISK!!!!! " << fullpath << std::endl;
-            }
         }
 
     }
