@@ -93,16 +93,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         std::string filename = archive_entry_pathname(entry);
-        std::cout << filename << std::endl;
-        std::cout << root_path << std::endl;
         std::string relative_path;
-        if (filename.starts_with(root_path) && filename.length() > root_path.length()) {
-            relative_path = filename.substr(root_path.length());
-        } else {
-            // Skip files that don't follow the expected package structure
-            archive_read_data_skip(a);
-            continue;
-        }
 
         if (!isMetadataOrScript(relative_path)) {
             archive_read_data_skip(a);
