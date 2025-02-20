@@ -111,23 +111,23 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         archive_entry_set_pathname(entry, fullpath.c_str());
         std::cout << "fullpath: " << fullpath << std::endl;
 
-        // r = archive_write_header(ext, entry);
-        // if (r != ARCHIVE_OK) {
-        //     std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-        //     status = ARCHIVE_FATAL;
-        //     break;
-        // }
-        //
-        // const void* buff;
-        // size_t size;
-        // la_int64_t offset;
-        // while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
-        //     if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
-        //         std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-        //         status = ARCHIVE_FATAL;
-        //         break;
-        //     }
-        // }
+        r = archive_write_header(ext, entry);
+        if (r != ARCHIVE_OK) {
+            std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+            status = ARCHIVE_FATAL;
+            break;
+        }
+
+        const void* buff;
+        size_t size;
+        la_int64_t offset;
+        while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+            if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
+                std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+                status = ARCHIVE_FATAL;
+                break;
+            }
+        }
     }
 
     archive_read_close(a);
@@ -232,16 +232,16 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         la_int64_t offset;
         bool extraction_success = true;
 
-        while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
-            if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
-                std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-                status = ARCHIVE_FATAL;
-                extraction_success = false;
-                break;
-            }
-        }
+        // while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+        //     if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
+        //         std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+        //         status = ARCHIVE_FATAL;
+        //         extraction_success = false;
+        //         break;
+        //     }
+        // }
 
-        if (extraction_success && r == ARCHIVE_EOF) {
+        if (extraction_success /*&& r == ARCHIVE_EOF*/) {
             if (AConf::BSTRAP_PATH.empty()) {
                 if (!is_directory(fullpath)) {
                     installed_files.push_back(fullpath);
