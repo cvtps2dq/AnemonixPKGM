@@ -21,6 +21,7 @@
     #include <algorithm>
 #endif
 
+#include <colors.h>
 #include <Database.h>
 #include "config.h"
 #include <fstream>
@@ -168,7 +169,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         int r = archive_read_next_header(a, &entry);
         if (r == ARCHIVE_EOF) break;
         if (r != ARCHIVE_OK) {
-            std::cerr << "Archive error: " << archive_error_string(a) << std::endl;
+            std::cerr << RED << "Archive error: " << archive_error_string(a) << RESET << std::endl;
             status = ARCHIVE_FATAL;
             break;
         }
