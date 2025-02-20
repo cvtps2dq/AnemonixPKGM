@@ -219,12 +219,12 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         std::cout << "Final Full Path: " << fullpath << std::endl;
         archive_entry_set_pathname(entry, fullpath.c_str());
 
-        r = archive_write_header(ext, entry);
-        if (r != ARCHIVE_OK) {
-            std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-            status = ARCHIVE_FATAL;
-            break;
-        }
+        // r = archive_write_header(ext, entry);
+        // if (r != ARCHIVE_OK) {
+        //     std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+        //     status = ARCHIVE_FATAL;
+        //     break;
+        // }
 
         // Copy data and track successful extraction
         const void* buff;
