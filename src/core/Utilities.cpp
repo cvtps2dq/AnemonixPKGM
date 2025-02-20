@@ -209,8 +209,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
             // Bootstrap mode → place extracted files inside bootstrap root
-            std::cout << base_path.string().substr(1, std::string::npos) << std::endl;
-            fullpath = base_path.string().substr(1, std::string::npos) / extracted_file;
+            fullpath = base_path / extracted_file.string().substr(1, std::string::npos);
         }
 
         // Normalize final path
