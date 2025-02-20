@@ -188,8 +188,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             continue;
         }
 
-        if (filename.substr(root.length()) == "anemonix.yaml" || filename.substr(root.length()) == "install.anemonix" ||
-            filename.substr(root.length()) == "update.anemonix" || filename.substr(root.length()) == "remove.anemonix") {
+        if (!filename.starts_with(root)) {
             archive_read_data_skip(a);
             continue;
         }
@@ -200,10 +199,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         //std::cout << "BSTRAP_PATH: " << base_path << std::endl;
 
         // Strip root prefix correctly without forcing absolute paths
-        if (filename.empty()) {
-            file_count++;
-            continue;
-        }
 
         std::filesystem::path extracted_file;
         try {extracted_file = filename.substr(root.length() + 7);}
