@@ -197,7 +197,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         std::filesystem::path base_path = AConf::BSTRAP_PATH.empty() ? "/" :
                                   std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
 
-        std::cout << "BSTRAP_PATH: " << base_path << std::endl;
+        //std::cout << "BSTRAP_PATH: " << base_path << std::endl;
 
         // Strip root prefix correctly without forcing absolute paths
         std::filesystem::path extracted_file = filename.substr(root.length() + 7);
@@ -215,15 +215,15 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         // Normalize final path
         fullpath = fullpath.lexically_normal();
 
-        std::cout << "Final Full Path: " << fullpath << std::endl;
+        //std::cout << "Final Full Path: " << fullpath << std::endl;
         archive_entry_set_pathname(entry, fullpath.c_str());
 
-        // r = archive_write_header(ext, entry);
-        // if (r != ARCHIVE_OK) {
-        //     std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-        //     status = ARCHIVE_FATAL;
-        //     break;
-        // }
+        r = archive_write_header(ext, entry);
+        if (r != ARCHIVE_OK) {
+            std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+            status = ARCHIVE_FATAL;
+            break;
+        }
 
         // Copy data and track successful extraction
         const void* buff;
@@ -231,14 +231,14 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         la_int64_t offset;
         bool extraction_success = true;
 
-        // while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
-        //     if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
-        //         std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
-        //         status = ARCHIVE_FATAL;
-        //         extraction_success = false;
-        //         break;
-        //     }
-        // }
+        while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+            if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
+                std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
+                status = ARCHIVE_FATAL;
+                extraction_success = false;
+                break;
+            }
+        }
 
         if (extraction_success /*&& r == ARCHIVE_EOF*/) {
             if (AConf::BSTRAP_PATH.empty()) {
@@ -261,7 +261,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             file_count++;
         }
 
-        //archive_write_finish_entry(ext);
+        archive_write_finish_entry(ext);
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
