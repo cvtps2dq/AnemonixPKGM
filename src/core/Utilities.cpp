@@ -202,7 +202,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         // Strip root prefix correctly without forcing absolute paths
         std::filesystem::path extracted_file = filename.substr(root.length() + 7);
         extracted_file = extracted_file.lexically_normal();
-
         std::filesystem::path fullpath;
 
         if (base_path.empty()) {
