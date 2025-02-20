@@ -195,7 +195,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::filesystem::path extracted_file;
         try {
-            extracted_file = filename.substr(root.length() + 7);
+            extracted_file = filename.substr(root.length());
         } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
             std::cerr << "Extracting file: " << extracted_file.string() << std::endl;
