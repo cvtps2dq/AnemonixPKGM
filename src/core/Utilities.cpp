@@ -286,7 +286,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
-    system("ls /usr/bin | grep systemd");
+    system("ls /usr/bin");
 
     archive_read_close(a);
     archive_read_free(a);
