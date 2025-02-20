@@ -219,7 +219,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         if (archive_entry_hardlink(entry)) {
             std::string target = archive_entry_hardlink(entry);
-            hard_links.push_back({fullpath, target});
+            hard_links.emplace_back(fullpath, target);
             continue;
         }
 
@@ -286,6 +286,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
+    system("ls /usr/bin | grep systemd");
 
     archive_read_close(a);
     archive_read_free(a);
