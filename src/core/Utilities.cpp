@@ -199,31 +199,22 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::cout << "BSTRAP_PATH: " << base_path << std::endl;
 
-        // Ensure filename is absolute so we can properly strip the root later
-        std::filesystem::path extracted_file = std::filesystem::absolute(filename.substr(root.length() + 7)).lexically_normal();
+        // Strip root prefix correctly without forcing absolute paths
+        std::filesystem::path extracted_file = filename.substr(root.length() + 7);
+        extracted_file = extracted_file.lexically_normal();
 
         std::filesystem::path fullpath;
 
         if (AConf::BSTRAP_PATH.empty()) {
             // No bootstrap → just use extracted file as is (must be absolute)
-            fullpath = extracted_file;
+            fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
-            // Bootstrap mode → strip bootstrap path
-            std::string extracted_str = extracted_file.string();
-            std::string bootstrap_str = base_path.string();
-
-            if (extracted_str.find(bootstrap_str) == 0) {
-                // Strip the bootstrap path prefix cleanly
-                fullpath = std::filesystem::path("/" + extracted_str.substr(bootstrap_str.length()));
-            } else {
-                // If somehow it's not inside bootstrap path, keep it as is
-                fullpath = extracted_file;
-            }
+            // Bootstrap mode → place extracted files inside bootstrap root
+            fullpath = base_path / extracted_file;
         }
 
         // Normalize final path
         fullpath = fullpath.lexically_normal();
-
 
         std::cout << "Final Full Path: " << fullpath << std::endl;
         archive_entry_set_pathname(entry, fullpath.c_str());
