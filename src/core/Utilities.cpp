@@ -161,6 +161,9 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
     int file_count = 0;
     std::string root;
 
+    std::vector<std::pair<std::filesystem::path, std::string>> hard_links;
+
+    // First pass: Extract regular files
     while (true) {
         int r = archive_read_next_header(a, &entry);
         if (r == ARCHIVE_EOF) break;
@@ -187,7 +190,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             file_count++;
             continue;
         }
-        std::cout << root << "package/" << std::endl;
         if (!filename.starts_with(root + "package/")) {
             archive_read_data_skip(a);
             continue;
@@ -196,39 +198,38 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         std::filesystem::path base_path = AConf::BSTRAP_PATH.empty() ? "/" :
                                   std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
 
-        //std::cout << "BSTRAP_PATH: " << base_path << std::endl;
-
-        // Strip root prefix correctly without forcing absolute paths
-
         std::filesystem::path extracted_file;
-        try {extracted_file = filename.substr(root.length() + 7);}
-        catch (const std::exception& e) {
+        try {
+            extracted_file = filename.substr(root.length() + 7);
+        } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
-            std::cerr << "Extracted file: " << filename << std::endl;
-            std::cerr << "failed to determine the path of file. called from filename.substr()" << std::endl;
+            std::cerr << "Failed to determine the path of file: " << filename << std::endl;
+            continue;
         }
 
         extracted_file = extracted_file.lexically_normal();
         std::filesystem::path fullpath;
 
         if (base_path.empty()) {
-            // No bootstrap → just use extracted file as is (must be absolute)
             fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
-            // Bootstrap mode → place extracted files inside bootstrap root
-            std::filesystem::path temp_fullpath = filename;
-            try {fullpath = base_path / extracted_file.string().substr(1, std::string::npos);}
-            catch (const std::exception& e) {
+            try {
+                fullpath = base_path / extracted_file.string().substr(1, std::string::npos);
+            } catch (const std::exception& e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
-                std::cerr << "Full path: " << temp_fullpath << std::endl;
-                std::cerr << "failed to determine the fullpath. called from base_path.empty()" << std::endl;
+                std::cerr << "Failed to determine fullpath for: " << filename << std::endl;
+                continue;
             }
         }
 
-        // Normalize final path
         fullpath = fullpath.lexically_normal();
 
-        //std::cout << "Final Full Path: " << fullpath << std::endl;
+        if (archive_entry_hardlink(entry)) {
+            std::string target = archive_entry_hardlink(entry);
+            hard_links.push_back({fullpath, target});
+            continue;
+        }
+
         archive_entry_set_pathname(entry, fullpath.c_str());
 
         r = archive_write_header(ext, entry);
@@ -253,17 +254,14 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             }
         }
 
-        if (extraction_success /*&& r == ARCHIVE_EOF*/) {
+        if (extraction_success) {
             if (AConf::BSTRAP_PATH.empty()) {
                 if (!is_directory(fullpath)) {
                     installed_files.push_back(fullpath);
                 }
             } else {
-                // Normalize BSTRAP_PATH
                 std::filesystem::path bootstrap_path = std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
                 std::filesystem::path relative_path = std::filesystem::path(fullpath).lexically_proximate(bootstrap_path);
-
-                // Ensure absolute path (prefix with '/')
                 std::filesystem::path final_path = "/" / relative_path;
 
                 if (!is_directory(fullpath)) {
@@ -275,6 +273,23 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         archive_write_finish_entry(ext);
+    }
+
+    // Second pass: Process hard links
+    for (auto& [link_path, target_path] : hard_links) {
+        std::filesystem::path full_target = AConf::BSTRAP_PATH.empty() ? std::filesystem::path("/") / target_path
+                                                                       : std::filesystem::absolute(AConf::BSTRAP_PATH) / target_path;
+
+        if (std::filesystem::exists(full_target)) {
+            try {
+                std::filesystem::create_hard_link(full_target, link_path);
+            } catch (const std::exception& e) {
+                std::cerr << "Failed to create hard link: " << link_path << " → " << full_target << "\n";
+                std::cerr << "Exception: " << e.what() << std::endl;
+            }
+        } else {
+            std::cerr << "Hard-link target does not exist: " << full_target << "\n";
+        }
     }
 
     std::cout << "\r[ OK ] Extraction complete.                            \n";
@@ -299,8 +314,6 @@ bool Utilities::isMetadataOrScript(const std::string& entry_name) {
         return strcmp(entry_name.c_str(), target) == 0;
     });
 }
-
-
 
 std::filesystem::path Utilities::findPKGRoot(const std::filesystem::path &temp_dir) {
     // Check if metadata exists directly in temp dir
