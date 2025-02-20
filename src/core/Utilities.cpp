@@ -225,10 +225,10 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         // Remove "package/" prefix if present
         std::string sanitized_str = sanitized_path.string();
-        if (sanitized_str.starts_with("/package/")) {
+        if (sanitized_str.starts_with(base_path.string() + "package/")) {
             sanitized_str = sanitized_str.substr(8);  // Remove "/package/"
             sanitized_path = std::filesystem::path(sanitized_str);
-        } else if (sanitized_str.starts_with("./package/")) {
+        } else if (sanitized_str.starts_with(base_path.string() + "./package/")) {
             sanitized_str = sanitized_str.substr(9);  // Remove "./package/"
             sanitized_path = std::filesystem::path(sanitized_str);
         }
