@@ -184,7 +184,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
         if (file_count == 0) {
             root = filename;
-            file_count = 1;
+            file_count++;
             continue;
         }
 
@@ -209,7 +209,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         try {extracted_file = filename.substr(root.length() + 7);}
         catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
-            std::cerr << "Extracted file: " << extracted_file << std::endl;
+            std::cerr << "Extracted file: " << filename << std::endl;
             std::cerr << "failed to determine the path of file. called from filename.substr()" << std::endl;
         }
 
@@ -221,10 +221,11 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             fullpath = "/" / extracted_file;  // Ensure absolute path
         } else {
             // Bootstrap mode → place extracted files inside bootstrap root
+            std::filesystem::path temp_fullpath = filename;
             try {fullpath = base_path / extracted_file.string().substr(1, std::string::npos);}
             catch (const std::exception& e) {
                 std::cerr << "Exception: " << e.what() << std::endl;
-                std::cerr << "Full path: " << fullpath << std::endl;
+                std::cerr << "Full path: " << temp_fullpath << std::endl;
                 std::cerr << "failed to determine the fullpath. called from base_path.empty()" << std::endl;
             }
         }
