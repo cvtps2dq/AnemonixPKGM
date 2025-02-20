@@ -80,8 +80,6 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
 
     archive_entry* entry;
     int status = ARCHIVE_OK;
-    int ix = 0;
-    const std::string& root_path = name;
 
     while (true) {
         int r = archive_read_next_header(a, &entry);
@@ -93,8 +91,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         std::string filename = archive_entry_pathname(entry);
-        std::string relative_path;
-
+        std::cout << filename << std::endl;
         if (!isMetadataOrScript(filename)) {
             archive_read_data_skip(a);
             continue;
