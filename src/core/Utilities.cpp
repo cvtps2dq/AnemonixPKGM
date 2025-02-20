@@ -103,7 +103,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         metadata_files.insert(filename);
-        std::filesystem::path extracted_file = std::filesystem::path(relative_path).lexically_normal();
+        std::filesystem::path extracted_file = std::filesystem::path(filename).lexically_normal();
         std::filesystem::path fullpath = (temp_dir / extracted_file).lexically_normal();
         archive_entry_set_pathname(entry, fullpath.c_str());
         std::cout << "fullpath: " << fullpath << std::endl;
