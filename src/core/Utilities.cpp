@@ -95,7 +95,16 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         std::string filename = archive_entry_pathname(entry);
         if (ix == 0) root_path = filename;
         ix++;
-        std::string relative_path = filename.substr(root_path.length());
+        std::string relative_path;
+        try {
+            relative_path = filename.substr(root_path.length());
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            status = ARCHIVE_FATAL;
+            std::cerr << "called from metadata extract" << std::endl;
+            std::cerr << "filename: " << filename << std::endl;
+            std::cerr << "root path: " << root_path << std::endl;
+        }
         if (!relative_path.empty() && relative_path[0] == '/') {
             relative_path = relative_path.substr(1);
         }
