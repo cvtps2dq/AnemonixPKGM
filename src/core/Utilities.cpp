@@ -166,7 +166,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::string filename = archive_entry_pathname(entry);
 
-
         if (exclude_files.contains(filename)) {
             archive_read_data_skip(a);
             continue;
@@ -183,7 +182,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             file_count++;
             continue;
         }
-        std::cout << filename << std::endl;
+
         if (!(filename.starts_with("package/") || filename.starts_with("./package/"))) {
             std::cout << "skipping " << filename << std::endl;
             archive_read_data_skip(a);
@@ -195,7 +194,10 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
 
         std::filesystem::path extracted_file;
         try {
-            extracted_file = filename.substr(root.length());
+            extracted_file = std::filesystem::path(filename).lexically_relative("package");
+            if (extracted_file.string().empty() || extracted_file == ".") {
+                extracted_file = filename.substr(root.length());
+            }
         } catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
             std::cerr << "root path: " << root << std::endl;
@@ -204,34 +206,9 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         extracted_file = extracted_file.lexically_normal();
-        std::filesystem::path fullpath;
-
-        if (base_path.empty()) {
-            fullpath = "/" / extracted_file;  // Ensure absolute path
-        } else {
-            try {
-                // note: check bootstrap
-                fullpath = base_path / extracted_file.string().substr(0, std::string::npos);
-            } catch (const std::exception& e) {
-                std::cerr << "Exception: " << e.what() << std::endl;
-                std::cerr << "Failed to determine fullpath for: " << filename << std::endl;
-                continue;
-            }
-        }
+        std::filesystem::path fullpath = base_path / extracted_file;
 
         fullpath = fullpath.lexically_normal();
-
-        std::filesystem::path sanitized_path = fullpath;
-
-        // Remove "package/" prefix if present
-        std::string sanitized_str = sanitized_path.string();
-        if (sanitized_str.starts_with(base_path.string() + "package/")) {
-            sanitized_str = sanitized_str.substr(8);  // Remove "/package/"
-            sanitized_path = std::filesystem::path(sanitized_str);
-        } else if (sanitized_str.starts_with(base_path.string() + "./package/")) {
-            sanitized_str = sanitized_str.substr(9);  // Remove "./package/"
-            sanitized_path = std::filesystem::path(sanitized_str);
-        }
 
         if (archive_entry_hardlink(entry)) {
             std::string target = archive_entry_hardlink(entry);
@@ -239,7 +216,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             continue;
         }
 
-        archive_entry_set_pathname(entry, sanitized_path.c_str());
+        archive_entry_set_pathname(entry, fullpath.c_str());
 
         r = archive_write_header(ext, entry);
         if (r != ARCHIVE_OK) {
@@ -268,32 +245,16 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         if (extraction_success) {
+            std::filesystem::path relative_path = extracted_file.lexically_normal();
 
-            if (AConf::BSTRAP_PATH.empty()) {
-                if (!is_directory(sanitized_path)) {
-                    installed_files.push_back(sanitized_path);
-                }
-            } else {
-                std::filesystem::path bootstrap_path = std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
-                std::filesystem::path relative_path = sanitized_path.lexically_proximate(bootstrap_path);
+            std::filesystem::path final_path = "/" / relative_path;
 
-                //  **Ensure `package/` is removed from `relative_path`**
-                std::string rel_str = relative_path.string();
-                if (rel_str.starts_with("package/")) {
-                    rel_str = rel_str.substr(8);  // Remove "package/"
-                    relative_path = std::filesystem::path(rel_str);
-                }
-
-                std::filesystem::path final_path = "/" / relative_path;
-
-                if (!is_directory(sanitized_path)) {
-                    installed_files.push_back(final_path);
-                }
+            if (!is_directory(fullpath)) {
+                installed_files.push_back(final_path);
             }
 
             file_count++;
         }
-
     }
 
     // Second pass: Process hard links
