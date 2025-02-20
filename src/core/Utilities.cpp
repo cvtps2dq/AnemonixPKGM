@@ -236,6 +236,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         bool extraction_success = true;
 
         while ((r = archive_read_data_block(a, &buff, &size, &offset)) == ARCHIVE_OK) {
+            std::cout << "Writing " << size << " bytes to " << fullpath << std::endl;
             if (archive_write_data_block(ext, buff, size, offset) != ARCHIVE_OK) {
                 std::cerr << "Write error: " << archive_error_string(ext) << std::endl;
                 status = ARCHIVE_FATAL;
