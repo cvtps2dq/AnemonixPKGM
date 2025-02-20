@@ -65,7 +65,7 @@ std::string Utilities::random_string(const std::size_t length)
 }
 
 bool Utilities::extractMetadataAndScripts(const std::string& package_path, const std::string& temp_dir,
-    std::unordered_set<std::string>& metadata_files) {
+    std::unordered_set<std::string>& metadata_files, const std::string& name) {
     archive* a = archive_read_new();
     archive_read_support_format_tar(a);
     archive_read_support_filter_all(a);
@@ -81,7 +81,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
     archive_entry* entry;
     int status = ARCHIVE_OK;
     int ix = 0;
-    std::string root_path;
+    const std::string& root_path = name;
 
     while (true) {
         int r = archive_read_next_header(a, &entry);

@@ -88,7 +88,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     std::cout << "first pass: extracting metadata" << std::endl;
     // First pass: Extract metadata and scripts
     std::unordered_set<std::string> metadata_files;
-    if (!Utilities::extractMetadataAndScripts(package_path, temp_dir_str, metadata_files)) {
+    if (!Utilities::extractMetadataAndScripts(package_path, temp_dir_str, metadata_files, arguments[0])) {
         std::filesystem::remove_all(temp_path);
         return false;
     }
