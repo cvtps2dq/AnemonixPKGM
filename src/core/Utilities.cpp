@@ -104,6 +104,8 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         ix++;
 
         std::string relative_path;
+        std::cout << filename << std::endl;
+        std::cout << root_path << std::endl;
         if (filename.starts_with(root_path) && filename.length() > root_path.length()) {
             relative_path = filename.substr(root_path.length());
         } else {
