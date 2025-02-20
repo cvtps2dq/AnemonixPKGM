@@ -257,11 +257,18 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         if (extraction_success) {
             std::filesystem::path sanitized_path = fullpath;
 
-            // If path starts with "/package/", remove "package/"
+            std::cout << "Original fullpath: " << fullpath << std::endl;
+
+            // If path starts with "/package/" or "./package/", remove "package/"
             std::string sanitized_str = sanitized_path.string();
             if (sanitized_str.starts_with("/package/")) {
-                sanitized_str = sanitized_str.substr(8);  // Remove "package/"
+                sanitized_str = sanitized_str.substr(8);  // Remove "/package/"
                 sanitized_path = std::filesystem::path(sanitized_str);
+                std::cout << "Stripped '/package/': " << sanitized_path << std::endl;
+            } else if (sanitized_str.starts_with("./package/")) {
+                sanitized_str = sanitized_str.substr(9);  // Remove "./package/"
+                sanitized_path = std::filesystem::path(sanitized_str);
+                std::cout << "Stripped './package/': " << sanitized_path << std::endl;
             }
 
             if (AConf::BSTRAP_PATH.empty()) {
@@ -272,6 +279,10 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
                 std::filesystem::path bootstrap_path = std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
                 std::filesystem::path relative_path = sanitized_path.lexically_proximate(bootstrap_path);
                 std::filesystem::path final_path = "/" / relative_path;
+
+                std::cout << "Bootstrap path: " << bootstrap_path << std::endl;
+                std::cout << "Relative path: " << relative_path << std::endl;
+                std::cout << "Final installed path: " << final_path << std::endl;
 
                 if (!is_directory(sanitized_path)) {
                     installed_files.push_back(final_path);
