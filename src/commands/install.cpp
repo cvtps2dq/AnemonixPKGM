@@ -98,7 +98,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     std::filesystem::path root(metadata_path);
     std::cout << "verify root " << root << std::endl;
     std::cout << "verify metadata path" << metadata_path << std::endl;
-    system(("ls -lah" + root.string()).c_str());
+    system(("ls -lah " + root.string()).c_str());
     if (access((root / "anemonix.yaml").c_str(), F_OK) != 0) {
         std::cerr << "Missing required metadata file (anemonix.yaml)" << std::endl;
         std::filesystem::remove_all(temp_path);
