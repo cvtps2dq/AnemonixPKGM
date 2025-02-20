@@ -183,10 +183,11 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             file_count++;
             continue;
         }
-        if (!filename.starts_with(root + "package/")) {
-            archive_read_data_skip(a);
-            continue;
-        }
+
+        // if (!filename.starts_with(root + "package/")) {
+        //     archive_read_data_skip(a);
+        //     continue;
+        // }
 
         std::filesystem::path base_path = AConf::BSTRAP_PATH.empty() ? "/" :
                                   std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
