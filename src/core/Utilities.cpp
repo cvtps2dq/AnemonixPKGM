@@ -255,16 +255,25 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         if (extraction_success) {
+            std::filesystem::path sanitized_path = fullpath;
+
+            // If path starts with "/package/", remove "package/"
+            std::string sanitized_str = sanitized_path.string();
+            if (sanitized_str.starts_with("/package/")) {
+                sanitized_str = sanitized_str.substr(8);  // Remove "package/"
+                sanitized_path = std::filesystem::path(sanitized_str);
+            }
+
             if (AConf::BSTRAP_PATH.empty()) {
-                if (!is_directory(fullpath)) {
-                    installed_files.push_back(fullpath);
+                if (!is_directory(sanitized_path)) {
+                    installed_files.push_back(sanitized_path);
                 }
             } else {
                 std::filesystem::path bootstrap_path = std::filesystem::absolute(AConf::BSTRAP_PATH).lexically_normal();
-                std::filesystem::path relative_path = std::filesystem::path(fullpath).lexically_proximate(bootstrap_path);
+                std::filesystem::path relative_path = sanitized_path.lexically_proximate(bootstrap_path);
                 std::filesystem::path final_path = "/" / relative_path;
 
-                if (!is_directory(fullpath)) {
+                if (!is_directory(sanitized_path)) {
                     installed_files.push_back(final_path);
                 }
             }
