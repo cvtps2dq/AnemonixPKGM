@@ -183,10 +183,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             continue;
         }
         std::cout << filename << std::endl;
-        std::filesystem::path norm_filename = std::filesystem::weakly_canonical(filename);
-        if (filename.starts_with("./"))
-            filename = filename.substr(2);  // Remove "./"
-        if (!norm_filename.string().starts_with("package/")) {
+        if (!(filename.starts_with("package/") || filename.starts_with("./package/"))) {
             std::cout << "skipping " << filename << std::endl;
             archive_read_data_skip(a);
             continue;
