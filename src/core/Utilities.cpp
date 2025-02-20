@@ -165,7 +165,7 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
         }
 
         std::string filename = archive_entry_pathname(entry);
-        std::cout << filename << std::endl;
+        //std::cout << filename << std::endl;
 
         if (exclude_files.contains(filename)) {
             archive_read_data_skip(a);
