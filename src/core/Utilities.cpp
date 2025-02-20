@@ -241,7 +241,6 @@ bool Utilities::extractRemainingFiles(const std::string& package_path,
             std::cout << "WE FOUND HIM!! ALARM!!!! WARNING!!! FOUND!!!!" << std::endl;
         }
 
-        archive_write_finish_entry(ext);
         if (!std::filesystem::exists(fullpath)) {
             std::cerr << "File vanished: " << fullpath << std::endl;
         }
