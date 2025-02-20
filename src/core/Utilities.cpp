@@ -93,21 +93,23 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         std::string filename = archive_entry_pathname(entry);
-        if (ix == 0) root_path = filename;
-        ix++;
-        std::string relative_path;
-        try {
-            relative_path = filename.substr(root_path.length());
-        } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
-            status = ARCHIVE_FATAL;
-            std::cerr << "called from metadata extract" << std::endl;
-            std::cerr << "filename: " << filename << std::endl;
-            std::cerr << "root path: " << root_path << std::endl;
-            exit(EXIT_FAILURE);
+
+        if (ix == 0) {
+            // Ensure root_path is actually a directory
+            root_path = filename;
+            if (!root_path.ends_with('/')) {
+                root_path += '/';
+            }
         }
-        if (!relative_path.empty() && relative_path[0] == '/') {
-            relative_path = relative_path.substr(1);
+        ix++;
+
+        std::string relative_path;
+        if (filename.starts_with(root_path) && filename.length() > root_path.length()) {
+            relative_path = filename.substr(root_path.length());
+        } else {
+            // Skip files that don't follow the expected package structure
+            archive_read_data_skip(a);
+            continue;
         }
 
         if (!isMetadataOrScript(relative_path)) {
@@ -116,8 +118,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
         }
 
         metadata_files.insert(filename);
-        std::filesystem::path extracted_file =
-            std::filesystem::path(filename.substr(root_path.length())).lexically_normal();
+        std::filesystem::path extracted_file = std::filesystem::path(relative_path).lexically_normal();
         std::filesystem::path fullpath = (temp_dir / extracted_file).lexically_normal();
         archive_entry_set_pathname(entry, fullpath.c_str());
         std::cout << "fullpath: " << fullpath << std::endl;
