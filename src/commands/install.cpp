@@ -73,6 +73,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     // Create temporary directory
     std::string temp_dir = "/tmp/anemo" + Utilities::random_string(6);
     std::filesystem::path temp_path(temp_dir);
+    std::cout << temp_path << std::endl;
     if (!mkdtemp(temp_dir.data())) {
         std::cerr << "Failed to create temporary directory" << std::endl;
         return false;
