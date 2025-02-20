@@ -104,6 +104,7 @@ bool Utilities::extractMetadataAndScripts(const std::string& package_path, const
             std::cerr << "called from metadata extract" << std::endl;
             std::cerr << "filename: " << filename << std::endl;
             std::cerr << "root path: " << root_path << std::endl;
+            exit(EXIT_FAILURE);
         }
         if (!relative_path.empty() && relative_path[0] == '/') {
             relative_path = relative_path.substr(1);
