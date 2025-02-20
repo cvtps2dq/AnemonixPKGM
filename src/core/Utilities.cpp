@@ -18,7 +18,7 @@
 #elif defined (__linux__)
     #include <filesystem>
     #include <vector>
-    #include <algorithm/ranges_any_of.h>
+    #include <algorithm>
 #endif
 
 #include <Database.h>
