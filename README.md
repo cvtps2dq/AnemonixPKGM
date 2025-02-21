@@ -1,17 +1,16 @@
 # Anemonix - Elemental Package Manager
 ![anemonix](https://github.com/user-attachments/assets/c4724a33-9c89-4b28-96c5-7a5408dddfde)
 
-### Anemonix is a lightning-fast, source-first package manager designed for modern Linux systems. Like the wind, it brings change—delivering fresh packages with transparency, speed, and flexibility.
+### Anemonix is a lightning-fast, package manager designed for modern Linux systems. Like the wind, it brings change—delivering fresh packages with transparency, speed, and flexibility.
 
 ## 🌪 Why Anemonix?
 
 ### Unlike legacy package managers tied to dpkg, rpm, or libalpm, Anemonix redefines package management with:
 
-✅ Source-First Builds – Compile from source for maximum customization.
+✅ Source Builds – Compile from source for maximum customization.
 
 ✅ Binary Cache – Install prebuilt packages when speed matters.
 
-✅ Decentralized Repositories – Support multiple official & community package sources.
 
 ✅ Deterministic & Isolated Builds – Ensure reproducible results with sandboxed environments.
 
@@ -42,12 +41,6 @@ build_deps:
   - cmake
   - gcc
 arch: [x86_64, aarch64]
-source:
-  url: https://nginx.org/download/nginx-1.25.3.tar.gz
-  sha256: a1d4f...
-binary:
-  url: https://repo.anemonix.org/binaries/nginx-1.25.3-x86_64.apkg
-  sig: a1b2c...  # Ed25519 signature
 ```
 
 ## ⚙ How Anemonix Works
@@ -133,11 +126,6 @@ https://repo.anemonix.org/
  
 ✔ Solution: Integrate QEMU for cross-compilation.
 
-### ⚔ File Conflicts
-•	Tracking /usr/bin/foo ownership.
- 
-✔ Solution: Maintain a per-package file manifest.
-
 ## 🚀 Get Started Today!
 
 1️⃣ Clone the repository:
@@ -148,9 +136,7 @@ cd anemonix
 ```
 
 2️⃣ Install dependencies.
-(libsoduim, libssl)
+(libsoduim, libssl, yaml-cpp, sqlite3)
 
-3️⃣ Build and test your first package!
-
-## Anemonix is here to change the game. Whether you’re a developer, a tinkerer, or a power user—embrace the wind and join the revolution! 🌬💨
+3️⃣ Build and test your first p
 📜 License: GPL | 🔥 Contribute: PRs welcome! | 📣 Community: Join the discussion!
