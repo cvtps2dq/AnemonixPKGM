@@ -326,6 +326,3 @@ std::filesystem::path Utilities::findPKGRoot(const std::filesystem::path &temp_d
     }
     return package_root;
 }
-
-
-
