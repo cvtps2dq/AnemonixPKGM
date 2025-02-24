@@ -24,8 +24,9 @@ add_executable(Anemo main.cpp ${CORE_SOURCES} ${COMMANDS_SOURCES}
         src/core/Package.cpp
         src/core/Package.h
         tests/parsing/parsing.cpp
-        src/core/transaction.cpp
-        tests/transaction/transaction_tests.cpp)
+        src/tests/transaction.cpp
+        src/commands/info.cpp
+        src/tests/transaction_tests.cpp)
 
 # Link libraries
 target_link_libraries(Anemo archive sqlite3 yaml-cpp fmt)

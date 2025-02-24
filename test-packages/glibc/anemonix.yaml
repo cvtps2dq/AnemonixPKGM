@@ -1,0 +1,10 @@
+#anemonix.yaml-2
+name: "glibc"
+version: "14.0"
+arch: "arm64"
+author: "gnu"
+description: "gnu c standard library"
+provides: [libc.so.6]
+conflicts: []
+replaces: []
+deps: []

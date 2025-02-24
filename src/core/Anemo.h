@@ -18,7 +18,7 @@ class Anemo {
 public:
     static void showHelp();
     static bool init();
-    static bool install(const std::vector<std::string> &arguments, bool force, bool reinstall);
+    static bool install(const std::string& filename, bool force, bool reinstall);
     static bool remove(const std::string& name, bool force, bool update);
     static bool audit();
     static bool update();
@@ -26,6 +26,7 @@ public:
     static bool validate(const std::filesystem::path& package_root);
     static int count();
     static void list();
+    static void info(const std::string &query);
 
     static void listParse();
 };

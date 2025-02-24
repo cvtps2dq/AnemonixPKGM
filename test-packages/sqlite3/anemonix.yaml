@@ -1,0 +1,10 @@
+#anemonix.yaml-2
+name: "sqlite3"
+version: "3.4.0"
+arch: "arm64"
+author: "sqlite-team"
+description: "ultrafast db for c++"
+provides: [libsqlite3.so=3.4.0]
+conflicts: []
+replaces: []
+deps: [glibc]

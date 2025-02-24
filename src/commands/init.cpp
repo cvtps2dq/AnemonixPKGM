@@ -10,7 +10,7 @@
 
 bool Anemo::init() {
     std::cout << "Initializing Anemonix...\n";
-    if (!Utilities::initFolders() || !Database::init()) {
+    if (!Utilities::initFolders() || !AnemoDatabase.init()) {
         std::cerr << "Failed to initialize Anemonix." << std::endl;
         return false;
     }

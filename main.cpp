@@ -94,6 +94,8 @@ int main(const int argc, char* argv[]) {
             AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
         }
         Anemo::listParse();
+    } else if (command == "info") {
+        Anemo::info(arguments[0]);
     }
     else if (command == "count") {
         if (bootstrap) {

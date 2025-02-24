@@ -31,6 +31,9 @@ class Utilities {
         static void deleteTempDir(const std::string& path);
         static std::shared_ptr<Package> parseDependency(const std::string& dep_entry);
         static Package parseMetadata(const std::filesystem::path& path);
+        static int compareVersions(const std::string& v1, const std::string& v2);
+
+        static std::vector<std::string> splitString(const std::string &str);
 };
 
 #endif //UTILITIES_H

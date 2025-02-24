@@ -42,7 +42,7 @@ bool Anemo::validate(const std::filesystem::path& package_root) {
 }
 
 int Anemo::count() {
-    std::cout << Database::countPackages();
+    //std::cout << Database::countPackages();
     return 0;
 }
 
