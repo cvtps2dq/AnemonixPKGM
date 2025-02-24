@@ -11,7 +11,6 @@
 #include <Utilities.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <sys/kauth.h>
 #include <yaml-cpp/node/node.h>
 #include <yaml-cpp/node/parse.h>
 #include <yaml-cpp/yaml.h>
