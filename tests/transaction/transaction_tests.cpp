@@ -63,7 +63,7 @@ bool transaction(const std::string& filename, bool force, bool reinstall) {
         return false;
     }
 
-    Package pkg = Utilities::parseMetadata(metadata_path);
+    Package pkg = Utilities::parseMetadata(root / "anemonix.yaml");
     pkg.print();
 
     std::string deps_str = pkg.deps.empty() ? "" : fmt::format("{}", fmt::join(pkg.deps, ","));
