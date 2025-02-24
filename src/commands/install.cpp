@@ -10,51 +10,31 @@
 #include <vector>
 #include <Database.h>
 #include <Filesystem.h>
+#include <fstream>
+#include <sys/stat.h>
 #include "colors.h"
 #include "Anemo.h"
 
-class Version {
-public:
-    static std::tuple<std::string, std::string> parseVersionConstraint(const std::string& constraint) {
-        if (constraint.find(">=") == 0) return {">=", constraint.substr(2)};
-        if (constraint.find("<=") == 0) return {"<=", constraint.substr(2)};
-        if (constraint.find('=') == 0) return {"=", constraint.substr(1)};
-        return {"=", constraint}; // Default to strict match
-    }
+void storePackageScripts(const std::string& packageName, const std::filesystem::path& path) {
+    std::filesystem::path scriptDir = "/var/lib/anemonix/scripts/" + packageName;
 
-    static std::vector<int> splitVersion(const std::string& version) {
-        std::vector<int> parts;
-        std::stringstream ss(version);
-        std::string item;
-        while (std::getline(ss, item, '.')) {
-            parts.push_back(std::stoi(item));
+    // Create script directory if it doesn't exist
+    std::filesystem::create_directories(scriptDir);
+
+    // Move known scripts to /var/lib/anemonix/scripts/package_name/
+    std::vector<std::string> scriptNames = {"preinstall.anemonix",
+        "postinstall.anemonix", "preremove.anemonix", "postremove.anemonix"};
+
+    for (const std::string& script : scriptNames) {
+        std::string src = path / script;
+        std::string dest = scriptDir / script;
+
+        if (std::filesystem::exists(src)) {
+            std::filesystem::rename(src, dest);
+            chmod(dest.c_str(), 0755);  // Ensure script is executable
         }
-        return parts;
     }
-
-    static int compareVersions(const std::string& v1, const std::string& v2) {
-        std::vector<int> ver1 = splitVersion(v1);
-        std::vector<int> ver2 = splitVersion(v2);
-
-        for (size_t i = 0; i < std::max(ver1.size(), ver2.size()); i++) {
-            int part1 = (i < ver1.size()) ? ver1[i] : 0;
-            int part2 = (i < ver2.size()) ? ver2[i] : 0;
-            if (part1 < part2) return -1;
-            if (part1 > part2) return 1;
-        }
-        return 0;
-    }
-
-    static bool satisfiesConstraint(const std::string& installedVersion, const std::string& constraint) {
-        auto [op, requiredVersion] = parseVersionConstraint(constraint);
-        int cmp = compareVersions(installedVersion, requiredVersion);
-
-        if (op == "=") return cmp == 0;
-        if (op == ">=") return cmp >= 0;
-        if (op == "<=") return cmp <= 0;
-        return false;
-    }
-};
+}
 
 bool Anemo::install(const std::string& filename, const bool force, const bool reinstall, const bool iKnowWhatToDo) {
     const std::string& package_path = filename;
@@ -83,7 +63,7 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
 
     Package pkg = Utilities::parseMetadata(metadata_path);
 
-    if (AnemoDatabase.packageExists(pkg.name)) {
+    if (AnemoDatabase.packageExists(pkg.name) && !reinstall) {
         std::cout << "Package already installed." << std::endl;
         remove_all(temp_path);
         exit(0);
@@ -111,7 +91,7 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
     // Step 1: Check dependencies
     std::vector<std::string> missing_deps;
     for (const std::string& dep : pkg.deps) {
-        if (!AnemoDatabase.packageExists(dep)) {
+        if (!Utilities::satisfiesDependency(dep, pkg)) {
             missing_deps.push_back(dep);
         }
     }
@@ -125,16 +105,20 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
     }
 
     // Step 3: Check reverse dependencies (affected packages)
-    std::vector<std::string> affected_pkgs = AnemoDatabase.getReverseDependencies(pkg.name);
+    std::vector<std::string> affected_pkgs = AnemoDatabase.getReverseDependencies(pkg.name, pkg.version);
     std::vector<std::string> broken_pkgs;
     for (const std::string& affected : affected_pkgs) {
         Package affected_pkg = AnemoDatabase.getPackage(affected).value();
         for (const std::string& dep : affected_pkg.deps) {
-            if (!Utilities::satisfiesDependency(dep, pkg)) {
+            if (!Database::satisfiesDependency(dep, pkg.name, pkg.version)) {
                 broken_pkgs.push_back(affected);
                 break;
             }
         }
+    }
+
+    if (reinstall) {
+        Anemo::remove(pkg.name, force, true, iKnowWhatToDo);
     }
 
     // Step 4: Display errors
@@ -148,7 +132,7 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
         }
 
         if (!broken_pkgs.empty() && !force) {
-            std::cout << ANSI_BOLD << RED << "  [B] Affected Packages (May Break)" << RESET << std::endl;
+            std::cout << ANSI_BOLD << RED << "  [A] Affected Packages (May Break)" << RESET << std::endl;
             for (size_t i = 0; i < broken_pkgs.size(); ++i) {
                 std::cout << (i + 1 == broken_pkgs.size() ? "   ╰──  " : "   ├──  ")
                           << broken_pkgs[i] << std::endl;
@@ -189,6 +173,16 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
         return false;
     }
 
+    // Run pre-install script if it exists
+    std::filesystem::path installScript = temp_path / "preinstall.anemonix";
+    if (access(installScript.c_str(), F_OK) == 0) {
+        std::cout << "Running install script..." << std::endl;
+        if (!Utilities::runScript(installScript)) {
+            std::cerr << "Error: Package installation script failed!" << std::endl;
+            return false;
+        }
+    }
+
     // Install files with rsync
     const std::string rsyncCmd = "rsync -a " + temp_dir + "/package/ " + AConf::BSTRAP_PATH + "/";
     if (system(rsyncCmd.c_str()) != 0) {
@@ -203,10 +197,25 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
 
     // Insert package into database
     try {
-        AnemoDatabase.insertPackage(pkg);
+        if (force && (!missing_deps.empty() || !broken_pkgs.empty() || !conflicting_pkgs.empty())) {
+            AnemoDatabase.insertPackage(pkg, true);
+        } else AnemoDatabase.insertPackage(pkg, false);
     } catch ([[maybe_unused]] const std::exception& e) {
         remove_all(temp_path);
         std::cout << ANSI_BOLD << RED << "Failed to insert package into database!" << RESET << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // insert provided packages
+    try {
+        AnemoDatabase.insertProvided(pkg);
+    } catch ([[maybe_unused]] const std::exception& e) {
+        remove_all(temp_path);
+        std::cout << std::endl;
+        std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "│      Failed to register provided packages!     |" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+        std::cout << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -221,9 +230,26 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
         AnemoDatabase.insertFiles(pkg.name, installed_files);
     } catch ([[maybe_unused]] const std::exception& e) {
         remove_all(temp_path);
-        std::cout << ANSI_BOLD << RED << "Failed to insert files into database!" << RESET << std::endl;
+        std::cout << std::endl;
+        std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "│      Failed to insert files into database!     |" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+        std::cout << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    installScript = temp_path / "postinstall.anemonix";
+    if (access(installScript.c_str(), F_OK) == 0) {
+        std::cout << "Running install script..." << std::endl;
+        if (!Utilities::runScript(installScript)) {
+            std::cerr << "Error: Package installation script failed!" << std::endl;
+            return false;
+        }
+    }
+
+    // store scripts for later
+
+    storePackageScripts(pkg.name, temp_path);
 
     std::cout << GREEN << "[ OK ] Package installed successfully: " << pkg.name << RESET << std::endl;
     return true;

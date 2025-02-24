@@ -20,13 +20,8 @@ bool Database::init() {
         deps TEXT DEFAULT '',
         conflicts TEXT DEFAULT '',
         replaces TEXT DEFAULT '',
-        protected INTEGER DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS broken_packages (
-        name TEXT PRIMARY KEY,
-        missing_deps TEXT DEFAULT '',
-        description TEXT DEFAULT ''
+        protected INTEGER DEFAULT 0,
+        broken INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS files (

@@ -4,136 +4,131 @@
 
 #include <colors.h>
 #include <iostream>
-
-#if defined(__APPLE__) && defined(__MACH__)
-    #include <__filesystem/operations.h>
-#elif defined (__linux__)
-    #include <filesystem>
-    #include <vector>
-#endif
-
+#include <filesystem>
+#include <vector>
 #include <Database.h>
-
+#include <fstream>
 #include "Anemo.h"
-#include "config.h"
+#include <sqlite3.h>
+#include <unistd.h>
+#include <Utilities.h>
+#include <sys/stat.h>
 
-bool Anemo::remove(const std::string &name, const bool force, const bool update) {
-    // try {
-    //
-    //     if (!force && name == "anemo") {
-    //         std::cerr << RED << "WAIT! YOU ARE ABOUT TO MAKE SOMETHING REAL NASTY!" << RESET << std::endl;
-    //         std::cerr << RED << "removing anemo will ABSOLUTELY break your system!" << RESET << std::endl;
-    //         std::cerr << CYAN << "if you REALLY wish to proceed, "
-    //                              "run the command with the --force flag" << RESET << std::endl;
-    //         exit(EXIT_FAILURE);
-    //
-    //     }
-    //     const std::vector<std::string> dependent_packages = Database::checkPkgReliance(name);
-    //
-    //     if (!dependent_packages.empty() && !force && !update) {
-    //         std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
-    //         std::cout << "----------------------------------------\n";
-    //         std::cout << "It is required by: " << YELLOW << "\n";
-    //         for (const auto& dep : dependent_packages) {
-    //             std::cout << dep << std::endl;
-    //         }
-    //         std::cout << "! Aborting removal.\n";
-    //         return false;
-    //     }
-    //
-    //     // Fetch package metadata
-    //     const std::string version = std::get<0>(Database::fetchNameAndVersion(name));
-    //     const std::string arch = std::get<1>(Database::fetchNameAndVersion(name));
-    //
-    //     if (const std::string desc = Database::fetchDescription(name); desc.contains("provided by:")) {
-    //         std::cout << desc << std::endl;
-    //         std::cout << RED << "\n! Cannot Remove: " << name << " !\n" << RESET;
-    //         std::cout << "----------------------------------------\n";
-    //         std::cout << "this package is provided by: " << YELLOW << "\n";
-    //         std::cout << "-> " << desc.substr(13, std::string::npos) << YELLOW << "\n" << RESET;
-    //         std::cout << CYAN <<"remove that package to remove this one automatically" << "\n" << RESET;
-    //         std::cout << "! Aborting removal.\n";
-    //     }
-    //
-    //     // Fetch file list
-    //     const std::vector<std::string> files = Database::fetchFiles(name);
-    //
-    //     if (files.empty()) {
-    //         std::cout << "No files recorded for package '" << name << "'.\n";
-    //         std::cout << "this is metapackage. proceed with caution!" << std::endl;
-    //
-    //     }
-    //
-    //     // Fetch provided packages
-    //     const std::vector<std::string> provided_packages = Database::fetchProvidedPackages(name);
-    //
-    //     // Print metadata & files
-    //     std::cout << "\n! Package Removal Confirmation !\n";
-    //     std::cout << "------------------------------------\n";
-    //     std::cout << "Name    : " << name << "\n";
-    //     std::cout << "Version : " << version << "\n";
-    //     std::cout << "Arch    : " << arch << "\n";
-    //     std::cout << "------------------------------------\n";
-    //     std::cout << "Installed Files:\n";
-    //     for (const auto& file : files) {
-    //         std::cout << "   -> " << file << "\n";
-    //     }
-    //     std::cout << "------------------------------------\n";
-    //     std::cout << "Provided Packages:\n";
-    //     for (const auto& prov : provided_packages) {
-    //         std::cout << "   -> " << prov << "\n";
-    //     }
-    //     std::cout << "------------------------------------\n";
-    //     std::cout << "Proceed with removal? (y/n): ";
-    //
-    //     char choice;
-    //     std::cin >> choice;
-    //     if (choice == 'n') {
-    //         std::cerr << "User aborted package removal.\n";
-    //         return false;
-    //     }
-    //     if (choice != 'y') {
-    //         std::cerr << "Invalid choice.\n";
-    //         return false;
-    //     }
-    //
-    //     if (force && name == "anemo") {
-    //         std::cout << YELLOW << "anemo performing harakiri." << RESET << std::endl;
-    //     }
-    //
-    //     // Remove files
-    //     for (const auto& file : files) {
-    //         std::filesystem::remove(file);
-    //     }
-    //
-    //     // If force flag is used, move affected packages to broken_packages table
-    //     if (force && !dependent_packages.empty() && !update)
-    //         Database::markAffected(dependent_packages);
-    //
-    //     // Remove database entries for the main package
-    //     Database::removePkg(name);
-    //
-    //     // Remove provided packages
-    //     std::string prov_name;
-    //     for (const auto& prov : provided_packages) {
-    //         size_t pos = prov.find('=');
-    //         if (pos != std::string::npos) {
-    //             prov_name = prov.substr(0, pos);
-    //         }
-    //         Database::removePkg(prov_name);
-    //         std::cout << "[OK] Removed provided package: " << prov_name << "\n";
-    //     }
-    //
-    //     std::cout << "[OK] Successfully removed " << name << "\n";
-    //
-    //     if (force && name == "anemo") {
-    //         std::cout << YELLOW << "bailing out. good luck :)" << RESET << std::endl;
-    //     }
-    //
-    //     return true;
-    //
-    // } catch (const std::exception& e) {
-    //     std::cerr << "[FL] Removal failed: " << e.what() << " :(\n";
-    //     return false;
-    // }
+bool Anemo::remove(const std::string& name, bool force, bool update, bool iKnowWhatToDo) {
+    std::cout << "Removing package: " << name << std::endl;
+
+    // 1. Check if package exists
+    if (!AnemoDatabase.packageExists(name)) {
+        std::cerr << "Error: Package " << name << " is not installed.\n";
+        return false;
+    }
+
+    // 2. Check if package is protected
+    if (AnemoDatabase.isProtected(name) && iKnowWhatToDo) {
+        std::cout << std::endl;
+        std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "│   Cannot proceed! This package is protected.   |" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+        std::cout << std::endl;
+
+        std::cout << BOLD << "This package is protected from any changes. "
+                             "It is essential for reliable system operation." << std::endl;
+
+        std::cout << RED BOLD << "If you really wish to do"
+                                 " operations on this package - use --i-know-what-to-do flag." << RESET << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    auto pkg = AnemoDatabase.getPackage(name);
+    // 3. Check for reverse dependencies
+    std::vector<std::string> reverseDeps = AnemoDatabase.getReverseDependencies(name, pkg.value().version);
+    if (!reverseDeps.empty()) {
+        if (!force) {
+            std::cout << std::endl;
+            std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+            std::cout << ANSI_BOLD << RED << "│         Removal halted due to errors!          │" << RESET << std::endl;
+            std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+            std::cout << std::endl;
+
+            std::cerr << "Error: The following packages depend on " << name << ":\n";
+            for (size_t i = 0; i < reverseDeps.size(); ++i) {
+                std::cerr << (i + 1 == reverseDeps.size() ? "   ╰──  " : "   ├──  ")
+                          << reverseDeps[i] << std::endl;
+            }
+            std::cerr << "Use --force to remove anyway and mark them as broken.\n";
+            return false;
+        } else {
+
+            std::cout << "Proceed with removal? (y/n): ";
+            char response;
+            std::cin >> response;
+            if (response != 'y' && response != 'Y') {
+                std::cout << "Installation cancelled." << std::endl;
+                return false;
+            }
+
+            std::cout << "Marking the following packages as broken due to forced removal:\n";
+            for (size_t i = 0; i < reverseDeps.size(); ++i) {
+                std::cout << (i + 1 == reverseDeps.size() ? "   ╰──  " : "   ├──  ")
+                          << reverseDeps[i] << std::endl;
+                AnemoDatabase.markPackageAsBroken(reverseDeps[i]);
+            }
+        }
+    }
+
+    std::cout << "Proceed with removal? (y/n): ";
+    char response;
+    std::cin >> response;
+    if (response != 'y' && response != 'Y') {
+        std::cout << "Installation cancelled." << std::endl;
+        return false;
+    }
+
+    // 4. Execute preremove script if it exists
+    std::string preRemoveScript = "/var/lib/anemonix/scripts/" + name + "/preremove.anemonix";
+    if (std::filesystem::exists(preRemoveScript)) {
+        std::cout << "Executing preremove script...\n";
+        if (!Utilities::runScript(preRemoveScript)) {
+            std::cerr << "Warning: preremove script failed!\n";
+        }
+    }
+
+    // 5. Remove installed files
+    std::vector<std::string> installedFiles = AnemoDatabase.getPackageFiles(name);
+    for (const std::string& file : installedFiles) {
+        if (std::filesystem::exists(file)) {
+            std::filesystem::remove(file);
+        }
+    }
+
+    // 6. Execute postremove script if it exists
+    std::string postRemoveScript = "/var/lib/anemonix/scripts/" + name + "/postremove.anemonix";
+    if (std::filesystem::exists(postRemoveScript)) {
+        std::cout << "Executing postremove script...\n";
+        if (!Utilities::runScript(postRemoveScript)) {
+            std::cerr << "Warning: postremove script failed!\n";
+        }
+    }
+
+    // 7. Remove package scripts
+    try{std::filesystem::remove_all("/var/lib/anemonix/scripts/" + name);} catch (const std::exception& e) {
+        std::cout << std::endl;
+        std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "│            Failed to remove scripts!           |" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+        std::cout << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // 8. Remove package entry from database
+    try{AnemoDatabase.removePackage(name);} catch (const std::exception& e) {
+        std::cout << std::endl;
+        std::cout << ANSI_BOLD << RED << "╭────────────────────────────────────────────────╮" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "│     Failed to remove package from database!    |" << RESET << std::endl;
+        std::cout << ANSI_BOLD << RED << "╰────────────────────────────────────────────────╯" << RESET << std::endl;
+        std::cout << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::cout << "Package " << name << " removed successfully!\n";
+    return true;
 }

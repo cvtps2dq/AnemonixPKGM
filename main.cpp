@@ -62,7 +62,7 @@ int main(const int argc, char* argv[]) {
         }
     } else if (command == "remove" && !arguments.empty()) {
         for (const auto& pkg : arguments) {
-            if (!Anemo::remove(pkg, force, bootstrap)) {
+            if (!Anemo::remove(pkg, force, false, iKnowWhatToDo)) {
                 std::cerr << "Failed to remove: " << pkg << "\n";
             }
         }

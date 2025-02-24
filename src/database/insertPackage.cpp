@@ -4,14 +4,14 @@
 
 #include "Database.h"
 
-bool Database::insertPackage(const Package& pkg) {
+bool Database::insertPackage(const Package& pkg, bool broken) {
     if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
         std::cerr << "Error: Cannot open database\n";
         return false;
     }
     const char* sql = R"(
-        INSERT INTO packages (name, version, author, description, arch, provides, deps, conflicts, replaces, protected)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO packages (name, version, author, description, arch, provides, deps, conflicts, replaces, protected, broken)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     )";
 
     sqlite3_stmt* stmt;
@@ -36,6 +36,7 @@ bool Database::insertPackage(const Package& pkg) {
     sqlite3_bind_text(stmt, 8, con_str.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 9, repl_str.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 10, pkg.is_protected ? 1 : 0);  // Store as 1 (true) or 0 (false)
+    sqlite3_bind_int(stmt, 11, broken);
 
     // Execute query
     if (sqlite3_step(stmt) != SQLITE_DONE) {

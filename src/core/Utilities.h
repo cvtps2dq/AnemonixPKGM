@@ -22,6 +22,8 @@ class Utilities {
         static std::vector<std::string> splitString(const std::string &str);
 
         static bool satisfiesDependency(const std::string &dep, const Package &pkg);
+
+        static bool runScript(const std::string &scriptPath);
 };
 
 #endif //UTILITIES_H

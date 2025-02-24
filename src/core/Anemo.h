@@ -19,7 +19,7 @@ public:
     static void showHelp();
     static bool init();
     static bool install(const std::string &filename, bool force, bool reinstall, bool iKnowWhatToDo);
-    static bool remove(const std::string& name, bool force, bool update);
+    static bool remove(const std::string& name, bool force, bool update, bool iKnowWhatToDo);
     static bool audit();
     static bool update();
     static bool upgrade();
