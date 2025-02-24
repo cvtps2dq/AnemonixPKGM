@@ -20,7 +20,12 @@ find_package(fmt REQUIRED)
 add_executable(Anemo main.cpp ${CORE_SOURCES} ${COMMANDS_SOURCES}
         src/core/config.h
         src/cli/defines.h
-        src/commands/list.cpp)
+        src/commands/list.cpp
+        src/core/Package.cpp
+        src/core/Package.h
+        tests/parsing/parsing.cpp
+        src/core/transaction.cpp
+        tests/transaction/transaction_tests.cpp)
 
 # Link libraries
 target_link_libraries(Anemo archive sqlite3 yaml-cpp fmt)

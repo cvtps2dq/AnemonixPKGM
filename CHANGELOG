@@ -1,2 +1,5 @@
 1.0:
  revamped install routine. now Anemo relies on libarchive to unpack files, dropping fs::copy().
+
+1.1
+  revamped parsing. refactor for oop.

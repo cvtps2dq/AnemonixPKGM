@@ -12,6 +12,7 @@
 
 #endif
 #include <unordered_set>
+#include "Package.h"
 
 class Utilities {
     public:
@@ -28,6 +29,8 @@ class Utilities {
                                           installed_files);
         static bool isMetadataOrScript(const std::string &entry_name);
         static void deleteTempDir(const std::string& path);
+        static std::shared_ptr<Package> parseDependency(const std::string& dep_entry);
+        static Package parseMetadata(const std::filesystem::path& path);
 };
 
 #endif //UTILITIES_H

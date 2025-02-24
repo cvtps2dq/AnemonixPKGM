@@ -192,18 +192,20 @@ bool Database::writePkgFilesRecord(const std::string &name, const std::string &t
 }
 
 std::tuple<std::string, std::string> Database::fetchNameAndVersion(const std::string &name) {
-    // Fetch package metadata
     std::string version, arch;
-
     sqlite3* db;
-    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
-        throw std::runtime_error("Failed to open database");
-    }
-    sqlite3_stmt* stmt;
 
-    if (const auto select_metadata_sql = "SELECT version, arch FROM packages WHERE name = ?;";
-        sqlite3_prepare_v2(db, select_metadata_sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        throw std::runtime_error(sqlite3_errmsg(db));
+    if (sqlite3_open(AConf::DB_PATH.c_str(), &db) != SQLITE_OK) {
+        throw std::runtime_error("Failed to open database: " + std::string(sqlite3_errmsg(db)));
+    }
+
+    sqlite3_stmt* stmt;
+    const char* sql = "SELECT version, arch FROM packages WHERE name = ?;";
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        std::string errorMsg = sqlite3_errmsg(db);
+        sqlite3_close(db);
+        throw std::runtime_error("SQL error: " + errorMsg);
     }
 
     sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
@@ -212,14 +214,15 @@ std::tuple<std::string, std::string> Database::fetchNameAndVersion(const std::st
         version = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
         arch = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
     } else {
-        std::cerr << "Package '" << name << "' is not installed.\n";
+        sqlite3_finalize(stmt);
         sqlite3_close(db);
+        std::cerr << "Package not found: " << name << std::endl;
+        exit(EXIT_FAILURE);
     }
+
     sqlite3_finalize(stmt);
     sqlite3_close(db);
-
-    return std::make_tuple(std::string(version), std::string(arch));
-
+    return std::make_tuple(version, arch);
 }
 
 std::vector<std::string> Database::fetchFiles(const std::string &name) {

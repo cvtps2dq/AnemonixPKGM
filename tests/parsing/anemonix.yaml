@@ -1,0 +1,10 @@
+#anemonix.yaml-2
+name: "anemo-epoch-2"
+version: "1.1"
+arch: "arm64"
+author: "cv2"
+description: "anemo package manager"
+provides: [libanemo.so=1.0,libanemops.so.2=2.9,libresolv.so.6=6.1]
+conflicts: [anemo-epoch-1,anemo]
+replaces: [anemo-epoch-1, anemo, anemo-resolv]
+deps: [yaml-cpp=0.8.0,sqlite3>=3.4.0,glibc>=14.0]

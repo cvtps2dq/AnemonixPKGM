@@ -25,7 +25,7 @@
 
 std::string removeExtension(const std::string& filename) {
     try{
-        if (size_t last_dot = filename.rfind(".apkg"); last_dot != std::string::npos) {
+        if (const size_t last_dot = filename.rfind(".apkg"); last_dot != std::string::npos) {
             return filename.substr(0, last_dot);
         }
     } catch (const std::exception& e) {
@@ -34,13 +34,6 @@ std::string removeExtension(const std::string& filename) {
         std::cerr << filename << std::endl;
     }
     return filename;  // Return original if no `.apkg`
-}
-
-void copyFileWithMetadata(const std::filesystem::path& source, const std::filesystem::path& destination) {
-    try { if (!exists(destination))rename(source, destination);}
-    catch (const std::exception& e) {
-        std::cerr << "Error copying file " << source << " -> " << destination << ": " << e.what() << std::endl;
-    }
 }
 
 int compareVersions(const std::string& v1, const std::string& v2) {
@@ -87,7 +80,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     // First pass: Extract metadata and scripts
     std::unordered_set<std::string> metadata_files;
     if (!Utilities::extractMetadataAndScripts(package_path, temp_dir_str, metadata_files, arguments[0])) {
-        std::filesystem::remove_all(temp_path);
+        remove_all(temp_path);
         return false;
     }
     // Verify metadata exists
@@ -95,7 +88,7 @@ bool Anemo::install(const std::vector<std::string>& arguments, bool force, bool 
     std::filesystem::path root(metadata_path);
     if (access((root / "anemonix.yaml").c_str(), F_OK) != 0) {
         std::cerr << "Missing required metadata file (anemonix.yaml)" << std::endl;
-        std::filesystem::remove_all(temp_path);
+        remove_all(temp_path);
         return false;
     }
 

@@ -1,1 +1,0 @@
-if you see this file at the location defined in build.anemonix it means that anemonix successfully installed the package.
