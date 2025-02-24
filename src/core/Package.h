@@ -24,20 +24,21 @@ public:
     std::string author;
     std::string description;
     std::string arch;
-
     std::vector<std::string> provides;
     std::vector<std::string> deps;
     std::vector<std::string> conflicts;
     std::vector<std::string> replaces;
+    bool is_protected;
 
     // Constructor
     Package(std::string name, std::string version, std::string author, std::string description, std::string arch,
             std::vector<std::string> provides = {}, std::vector<std::string> deps = {},
-            std::vector<std::string> conflicts = {}, std::vector<std::string> replaces = {})
+            std::vector<std::string> conflicts = {}, std::vector<std::string> replaces = {}, bool is_protected = false)
         : name(std::move(name)), version(std::move(version)), author(std::move(author)),
           description(std::move(description)), arch(std::move(arch)),
           provides(std::move(provides)), deps(std::move(deps)),
-          conflicts(std::move(conflicts)), replaces(std::move(replaces)) {}
+          conflicts(std::move(conflicts)), replaces(std::move(replaces)),
+          is_protected(is_protected) {}
 
     static void printTree(const std::vector<std::string>& packages, const std::string& title, const std::string& color, const std::string& icon, const std::string& prefix = "  ") {
         if (packages.empty()) return;

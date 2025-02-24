@@ -24,6 +24,12 @@ public:
     bool insertPackage(const Package &pkg);
     std::optional<Package> getPackage(const std::string &packageName);
     bool init();
+
+    bool isProtected(const std::string &packageName);
+
+    bool insertFiles(const std::string &packageName, const std::vector<std::string> &files);
+
+    std::vector<std::string> getReverseDependencies(const std::string &packageName);
 };
 
 inline Database AnemoDatabase;

@@ -3,6 +3,7 @@
 //
 
 #include <Database.h>
+#include <Filesystem.h>
 #include <iostream>
 #include <Utilities.h>
 
@@ -10,7 +11,7 @@
 
 bool Anemo::init() {
     std::cout << "Initializing Anemonix...\n";
-    if (!Utilities::initFolders() || !AnemoDatabase.init()) {
+    if (!Filesystem::initFolders() || !AnemoDatabase.init()) {
         std::cerr << "Failed to initialize Anemonix." << std::endl;
         return false;
     }

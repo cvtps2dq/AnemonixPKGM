@@ -19,7 +19,8 @@ bool Database::init() {
         provides TEXT DEFAULT '',
         deps TEXT DEFAULT '',
         conflicts TEXT DEFAULT '',
-        replaces TEXT DEFAULT ''
+        replaces TEXT DEFAULT '',
+        protected INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS broken_packages (
@@ -33,7 +34,8 @@ bool Database::init() {
         file_path TEXT,
         FOREIGN KEY (package_name) REFERENCES packages(name) ON DELETE CASCADE
     );
-)";
+    )";
+
 
     char* errMsg = nullptr;
     if (sqlite3_exec(db, sql, nullptr, nullptr, &errMsg) != SQLITE_OK) {

@@ -18,7 +18,7 @@ class Anemo {
 public:
     static void showHelp();
     static bool init();
-    static bool install(const std::string& filename, bool force, bool reinstall);
+    static bool install(const std::string &filename, bool force, bool reinstall, bool iKnowWhatToDo);
     static bool remove(const std::string& name, bool force, bool update);
     static bool audit();
     static bool update();

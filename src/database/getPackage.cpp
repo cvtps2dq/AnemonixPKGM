@@ -12,7 +12,7 @@ std::optional<Package> Database::getPackage(const std::string& packageName) {
         exit(EXIT_FAILURE);
     }
     const char* sql = R"(
-        SELECT name, version, author, description, arch, provides, deps, conflicts, replaces
+        SELECT name, version, author, description, arch, provides, deps, conflicts, replaces, protected
         FROM packages
         WHERE name = ?;
     )";
@@ -39,6 +39,9 @@ std::optional<Package> Database::getPackage(const std::string& packageName) {
         pkg.deps = Utilities::splitString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6)));
         pkg.conflicts = Utilities::splitString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 7)));
         pkg.replaces = Utilities::splitString(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 8)));
+
+        // Read 'protected' flag
+        pkg.is_protected = sqlite3_column_int(stmt, 9) == 1;
     } else {
         sqlite3_finalize(stmt);
         sqlite3_close(db);

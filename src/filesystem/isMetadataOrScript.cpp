@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <ranges>
+#include <algorithm>
 
 #include "Filesystem.h"
 

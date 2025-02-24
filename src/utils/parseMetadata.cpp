@@ -13,6 +13,7 @@ Package Utilities::parseMetadata(const std::filesystem::path& path) {
     std::string name, version, arch;
     std::string author = "unknown";
     std::string description = "no description provided";
+    bool is_protected = false;
 
     std::vector<std::string> deps;
     std::vector<std::string> conflicts;
@@ -36,6 +37,9 @@ Package Utilities::parseMetadata(const std::filesystem::path& path) {
         }
         if (config["author"]) {
             author = config["author"].as<std::string>();
+        }
+        if (config["protected"]) {
+            is_protected = config["protected"].as<bool>();
         }
     } catch (const YAML::Exception&) {
         std::cerr << RED << "[ERROR] Failed to parse required fields in metadata" << RESET << std::endl;
@@ -86,5 +90,5 @@ Package Utilities::parseMetadata(const std::filesystem::path& path) {
         exit(EXIT_FAILURE);
     }
 
-    return {name, version, author, description, arch, provides, deps, conflicts, replaces};
+    return {name, version, author, description, arch, provides, deps, conflicts, replaces, is_protected};
 }

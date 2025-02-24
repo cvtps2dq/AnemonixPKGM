@@ -12,7 +12,7 @@ int main(const int argc, char* argv[]) {
     }
 
     const std::string command = argv[1];
-    bool force = false, reinstall = false, bootstrap = false;
+    bool force = false, reinstall = false, bootstrap = false, iKnowWhatToDo = false;
     std::string bootstrap_path;
     std::vector<std::string> arguments;
 
@@ -20,6 +20,7 @@ int main(const int argc, char* argv[]) {
     for (int i = 2; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--force") force = true;
+        else if (arg == "--i-know-what-to-do") iKnowWhatToDo = true;
         else if (arg == "--reinstall") reinstall = true;
         else if (arg == "--bootstrap") {
             bootstrap = true;
@@ -40,6 +41,10 @@ int main(const int argc, char* argv[]) {
             std::cerr << "err: Missing bootstrap path\n";
             return 1;
         }
+        if (bootstrap_path == "/") {
+            std::cerr << "Bootstrapping to the root is just installing to the system." << std::endl;
+            return 1;
+        }
         AConf::ANEMO_ROOT = bootstrap_path + AConf::ANEMO_ROOT;
         AConf::BSTRAP_PATH = bootstrap_path;
         AConf::DB_PATH = AConf::ANEMO_ROOT + "/installed.db";
@@ -51,7 +56,7 @@ int main(const int argc, char* argv[]) {
         Anemo::showHelp();
     } else if (command == "install" && !arguments.empty()) {
         for (const auto& pkg : arguments) {
-            if (!Anemo::install({pkg}, force, reinstall)) {
+            if (!Anemo::install({pkg}, force, reinstall, iKnowWhatToDo)) {
                 std::cerr << RED << "Failed to install: " << pkg << RESET << "\n";
             }
         }

@@ -16,24 +16,12 @@
 
 class Utilities {
     public:
-        static bool isSu();
-        static bool initFolders();
-
-        static std::string random_string(std::size_t length);
-
-        static bool untarPKG(const std::string &package_path, const std::string &extract_to, bool reinstall, bool force);
-        static std::filesystem::path findPKGRoot(const std::filesystem::path& temp_dir);
-        static bool extractMetadataAndScripts(const std::string &package_path, const std::string &temp_dir, std::unordered_set<std::string> &metadata_files, const std::
-                                              string &name);
-        static bool extractRemainingFiles(const std::string &package_path, const std::unordered_set<std::string> &exclude_files, std::vector<std::string> &
-                                          installed_files);
-        static bool isMetadataOrScript(const std::string &entry_name);
-        static void deleteTempDir(const std::string& path);
         static std::shared_ptr<Package> parseDependency(const std::string& dep_entry);
         static Package parseMetadata(const std::filesystem::path& path);
         static int compareVersions(const std::string& v1, const std::string& v2);
-
         static std::vector<std::string> splitString(const std::string &str);
+
+        static bool satisfiesDependency(const std::string &dep, const Package &pkg);
 };
 
 #endif //UTILITIES_H
