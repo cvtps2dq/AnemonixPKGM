@@ -95,6 +95,7 @@ bool Anemo::remove(const std::string& name, bool force, bool update, bool iKnowW
     // 5. Remove installed files
     std::vector<std::string> installedFiles = AnemoDatabase.getPackageFiles(name);
     for (const std::string& file : installedFiles) {
+		std::cout << file << std::endl;
         if (std::filesystem::exists(file)) {
             std::filesystem::remove(file);
         }

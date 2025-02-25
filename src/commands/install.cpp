@@ -30,7 +30,7 @@ void storePackageScripts(const std::string& packageName, const std::filesystem::
         std::string dest = scriptDir / script;
 
         if (std::filesystem::exists(src)) {
-            std::filesystem::rename(src, dest);
+            std::filesystem::copy(src, dest);
             chmod(dest.c_str(), 0755);  // Ensure script is executable
         }
     }
@@ -224,7 +224,7 @@ bool Anemo::install(const std::string& filename, const bool force, const bool re
         std::vector<std::string> installed_files;
         for (const auto& file : std::filesystem::recursive_directory_iterator(temp_dir + "/package/")) {
             if (!file.is_directory()) {
-                installed_files.push_back(file.path().string().substr(temp_dir.length() + 9));
+                installed_files.push_back(file.path().string().substr(temp_dir.length() + 8));
             }
         }
         AnemoDatabase.insertFiles(pkg.name, installed_files);
